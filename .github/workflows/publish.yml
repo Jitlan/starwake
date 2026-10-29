@@ -1,0 +1,41 @@
+# Rebuilds the game and republishes the live site whenever main changes.
+# The site is served by GitHub Pages from the gh-pages branch, which holds the contents of dist/starwake-app/.
+name: Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: python3 tools/build.py
+
+      - name: Push the web app to gh-pages
+        run: |
+          git fetch --depth 1 origin gh-pages
+          git worktree add pages FETCH_HEAD
+          cd pages
+          git rm -rq --ignore-unmatch .
+          cp -r ../dist/starwake-app/. .
+          touch .nojekyll
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Site already up to date."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Publish ${GITHUB_SHA::7}"
+          git push origin HEAD:gh-pages

@@ -41,7 +41,9 @@ manifest={"name":"Starwake","short_name":"Starwake","description":"Offline verti
           {"src":"icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}
 open(os.path.join(app,'manifest.webmanifest'),'w').write(json.dumps(manifest,indent=1))
 files=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png']
-ver=hashlib.sha1(index.encode()).hexdigest()[:10]
+h=hashlib.sha1(index.encode())
+for f in files[2:]: h.update(open(os.path.join(app,f),'rb').read())
+ver=h.hexdigest()[:10]  # changes whenever any cached file changes, so installed copies refresh
 sw=('// Caches the whole game on first visit so it launches with no connection. The version changes with every build.\n'
  'const CACHE="starwake-'+ver+'";const FILES='+json.dumps(files)+';\n'
  'self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});\n'

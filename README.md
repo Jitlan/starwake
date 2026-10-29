@@ -22,4 +22,6 @@ Each device keeps its own save.
 ```
 python3 tools/build.py
 ```
-This produces `dist/starwake-app/`, the installable web app. The `gh-pages` branch holds exactly that folder's contents; replace them and push to update the live game. Installed copies pick up the new version the next time they open online.
+This produces `dist/starwake-app/`, the installable web app. You don't need to run it to publish: every push to `main` runs the **Publish** workflow (`.github/workflows/publish.yml`), which builds the game and pushes `dist/starwake-app/` to the `gh-pages` branch that GitHub Pages serves. It can also be run by hand from the Actions tab.
+
+Installed copies download a new version the next time they open online and run it from the launch after that. Saved progress is kept.
