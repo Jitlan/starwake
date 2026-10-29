@@ -1,0 +1,200 @@
+<style>
+/* Full-screen canvas with the HUD and menus floating over it. Shares the arcade's palette, type and gutters. */
+:root{
+  --void:#07061a; --deep:#100d2e; --panel:rgba(14,12,40,.92); --line:#2d2970;
+  --ink:#eef0ff; --dim:#9497cf; --faint:#5d5f99;
+  --player:#3ef0ff; --enemy:#ff3d7f; --gold:#ffc531; --fuel:#b36bff; --good:#5dff9b; --bad:#ff4d6a;
+  --f-display:"Avenir Next Condensed","Futura","Arial Narrow","Roboto Condensed","Helvetica Neue",system-ui,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --gl:max(16px,env(safe-area-inset-left,0px)); --gr:max(16px,env(safe-area-inset-right,0px));
+  --gt:env(safe-area-inset-top,0px); --gb:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;background:var(--void);color:var(--ink);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+body{font:14px/1.4 var(--f-body)}
+#stage{position:fixed;inset:0;overflow:hidden;touch-action:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--player);outline-offset:2px}
+.eyebrow{font:600 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+.hud-top{position:absolute;left:0;right:0;top:0;padding:calc(var(--gt) + 10px) var(--gr) 0 var(--gl);background:linear-gradient(180deg,rgba(7,6,26,.8),rgba(7,6,26,0))}
+.ht{display:flex;align-items:flex-start;gap:10px;max-width:640px;margin:0 auto}
+.ht .who{flex:1 1 auto;min-width:0}
+.ht .who .eyebrow{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ht .moon{margin-top:4px;font:800 italic 20px/1 var(--f-display);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hTime{flex:0 0 auto;padding-top:2px;font:700 18px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+#bPause{pointer-events:auto;flex:0 0 auto;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(10,8,30,.6);display:grid;place-items:center;padding:0}
+#bPause::before{content:"";width:12px;height:14px;border-left:4px solid var(--ink);border-right:4px solid var(--ink);box-sizing:border-box}
+.fuel{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:8px;max-width:640px;margin:10px auto 0}
+.fuel b{font:700 9px/1 var(--f-mono);letter-spacing:.14em;color:var(--fuel)}
+.fuel div{height:9px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.fuel i{display:block;height:100%;transform-origin:0 50%;background:linear-gradient(90deg,#7d45f0,var(--fuel) 60%,#d8b8ff);box-shadow:0 0 10px var(--fuel)}
+.fuel.low i{background:var(--bad);animation:blink .4s steps(2) infinite}
+#hFuelN{font:700 11px/1 var(--f-mono);min-width:26px;text-align:right;font-variant-numeric:tabular-nums}
+#hPads{display:flex;gap:4px}
+#hPads i{width:10px;height:10px;border-radius:2px;background:rgba(255,255,255,.15)}
+#hPads i.cur{background:var(--player);box-shadow:0 0 8px var(--player)}
+#hPads i.done{background:var(--good)}
+@keyframes blink{50%{opacity:.3}}
+.hud-bot{position:absolute;left:0;right:0;bottom:0;padding:0 var(--gr) calc(var(--gb) + 14px) var(--gl);background:linear-gradient(0deg,rgba(7,6,26,.75),rgba(7,6,26,0))}
+.gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:520px;margin:0 auto}
+.g{padding:8px 6px 7px;border-radius:12px;border:1px solid var(--line);background:rgba(10,8,30,.6);text-align:center}
+.g small{display:block;font:700 8.5px/1 var(--f-mono);letter-spacing:.12em;color:var(--dim)}
+.g b{display:block;margin-top:5px;font:700 17px/1 var(--f-mono);font-variant-numeric:tabular-nums;color:var(--good)}
+.g.bad b{color:var(--bad)} .g.na b{color:var(--ink)}
+#wind{display:flex;align-items:center;justify-content:center;gap:6px;margin:0 auto 8px;font:700 10px/1 var(--f-mono);letter-spacing:.12em;color:var(--dim)}
+#windA{display:inline-block;color:var(--player);font-size:14px}
+#hint{position:absolute;left:var(--gl);right:var(--gr);bottom:calc(var(--gb) + 92px);text-align:center;font:600 13px/1.3 var(--f-mono);color:var(--player);text-shadow:0 0 10px rgba(7,6,26,.9);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+#arrow{position:absolute;left:0;top:0;width:44px;height:44px;display:grid;place-items:center}
+#arrowI{position:absolute;inset:0;display:grid;place-items:center}
+#arrowI::before{content:"";width:0;height:0;border-left:16px solid var(--player);border-top:9px solid transparent;border-bottom:9px solid transparent;filter:drop-shadow(0 0 6px var(--player));margin-left:14px}
+#arrowN{position:relative;font:700 10px/1 var(--f-mono);color:var(--ink);text-shadow:0 0 6px var(--void)}
+#toast{position:absolute;left:var(--gl);right:var(--gr);top:30%;text-align:center;font:800 italic 20px/1.1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;text-shadow:0 0 14px currentColor;opacity:0}
+#toast.go{animation:toast 1.6s ease-out}
+@keyframes toast{0%{opacity:0;transform:translateY(10px)}12%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0;transform:translateY(-12px)}}
+#banner{position:absolute;left:var(--gl);right:var(--gr);top:24%;text-align:center;opacity:0}
+#banner .eyebrow{color:var(--good)}
+#banner h3{margin:8px 0 0;font:800 italic clamp(30px,10vw,46px)/1 var(--f-display);text-transform:uppercase;text-wrap:balance}
+#banner.go{animation:banner 2.4s ease-out forwards}
+@keyframes banner{0%{opacity:0;letter-spacing:.3em}12%{opacity:1;letter-spacing:.02em}100%{opacity:1}}
+
+/* ---------- Screens ---------- */
+.screen{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;padding:calc(var(--gt) + 18px) var(--gr) calc(var(--gb) + 18px) var(--gl);box-sizing:border-box}
+.screen.dim{background:rgba(7,6,26,.8);justify-content:center;align-items:center}
+.panel{width:100%;max-width:380px;display:grid;gap:10px;padding:22px 20px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-sizing:border-box;max-height:100%;overflow:auto}
+.panel h2{margin:2px 0 6px;font:800 italic 32px/1.05 var(--f-display);text-transform:uppercase;text-wrap:balance}
+.panel p{margin:0 0 6px;color:var(--dim)}
+.panel button,.menu button{min-height:50px;padding:0 18px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-weight:650;font-size:15px}
+.primary{background:var(--player)!important;color:#04121a!important;border-color:transparent!important;font-weight:800!important;text-transform:uppercase;letter-spacing:.08em;box-shadow:0 0 22px rgba(62,240,255,.35)}
+.ghost{background:transparent!important;color:var(--dim)!important;border-color:transparent!important}
+.danger{color:#ff7a9c!important;border-color:rgba(255,61,127,.4)!important;background:transparent!important}
+#title{justify-content:space-between}
+.logo{margin-top:7vh;text-align:center;font:900 italic clamp(46px,15vw,88px)/.9 var(--f-display);text-transform:uppercase;white-space:nowrap;letter-spacing:-.01em}
+.logo .a{color:transparent;-webkit-text-stroke:2px var(--fuel)}
+.logo .b{color:var(--player);text-shadow:4px 4px 0 var(--enemy),0 0 30px rgba(62,240,255,.45)}
+.tag{margin:16px auto 0;max-width:30ch;text-align:center;color:var(--dim);text-wrap:balance;text-shadow:0 1px 12px var(--void)}
+.menu{display:grid;gap:10px;width:100%;max-width:380px;margin:0 auto}
+.foot{display:flex;justify-content:space-between;color:var(--faint);font:600 11px/1.4 var(--f-mono);letter-spacing:.06em;max-width:380px;width:100%;margin:10px auto 0}
+.foot b{color:var(--gold)}
+#levels{background:linear-gradient(180deg,rgba(7,6,26,.88),rgba(7,6,26,.97))}
+#levels>*{width:100%;max-width:520px;margin-left:auto;margin-right:auto}
+#levels h2{margin:6px 0 0;font:900 italic 34px/1 var(--f-display);text-transform:uppercase}
+.grid{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:10px;padding:14px 0}
+.lv{position:relative;display:grid;gap:3px;text-align:left;padding:12px 12px 10px;border-radius:16px;border:1px solid var(--line);background:rgba(16,13,46,.8);min-height:96px}
+.lv .lvn{font:800 11px/1 var(--f-mono);color:var(--c)}
+.lv b{font:800 italic 18px/1.05 var(--f-display);text-transform:uppercase}
+.lv small{color:var(--dim);font-size:12px}
+.lv.lock{opacity:.35}
+.st{display:flex;gap:4px;margin-top:4px}
+.st i,#rStars i{width:14px;height:14px;background:rgba(255,255,255,.14);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.st i.on,#rStars i.on{background:var(--gold)}
+#rStars{display:flex;gap:8px;justify-content:center;margin:4px 0}
+#rStars i{width:34px;height:34px}
+.bot{display:flex;gap:10px;padding:10px 0 0;border-top:1px solid var(--line)}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px}
+.opt>span{font-weight:600}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:3px;border-radius:12px;background:rgba(255,255,255,.05);min-width:170px}
+.seg button{height:34px;min-height:0!important;padding:0!important;border:0!important;border-radius:9px!important;background:transparent!important;color:var(--dim);font-weight:700;font-size:13px}
+.seg button.on{background:var(--deep)!important;color:var(--player);box-shadow:inset 0 0 0 1px var(--line)}
+.tog{width:54px;height:30px;min-height:0!important;padding:0!important;border-radius:15px!important;position:relative;background:rgba(255,255,255,.1)!important}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--dim);transition:transform .15s}
+.tog.on{background:rgba(62,240,255,.3)!important;border-color:var(--player)!important}
+.tog.on::after{transform:translateX(24px);background:var(--player)}
+.hint{font-size:12px;color:var(--faint)!important;margin:-4px 0 4px!important}
+.rows{margin:4px 0 8px;display:grid;grid-template-columns:1fr auto;gap:8px 0;font:500 14px/1.2 var(--f-mono);font-variant-numeric:tabular-nums}
+.rows dt{color:var(--dim)} .rows dd{margin:0;text-align:right}
+#result.win h2{color:var(--player)} #result.lose h2{color:var(--enemy)}
+@media (prefers-reduced-motion:reduce){#hint{animation:none}}
+</style>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+
+  <div id="hud" hidden>
+    <div class="hud-top">
+      <div class="ht">
+        <div class="who"><div class="eyebrow" id="hName">Mission 1</div><div class="moon" id="hMoon">Selene</div></div>
+        <div id="hTime">0:00</div>
+        <button id="bPause" aria-label="Pause"></button>
+      </div>
+      <div class="fuel" id="fuelW"><b>FUEL</b><div><i id="hFuel"></i></div><span id="hFuelN">100</span><span id="hPads"></span></div>
+    </div>
+    <div id="arrow" hidden><span id="arrowI"></span><span id="arrowN"></span></div>
+    <div id="banner"><div class="eyebrow" id="banEye"></div><h3 id="banTxt"></h3></div>
+    <div id="toast"></div>
+    <div id="hint"></div>
+    <div class="hud-bot">
+      <div id="wind" hidden>WIND <span id="windA">➜</span> <span id="windN">0.0</span></div>
+      <div class="gauges">
+        <div class="g" id="gVyW"><small>DESCENT</small><b id="gVy">0.0</b></div>
+        <div class="g" id="gVxW"><small>DRIFT</small><b id="gVx">0.0</b></div>
+        <div class="g" id="gAngW"><small>TILT</small><b id="gAng">0°</b></div>
+        <div class="g na"><small>ALTITUDE</small><b id="gAlt">0</b></div>
+      </div>
+    </div>
+  </div>
+
+  <section id="title" class="screen">
+    <div>
+      <div class="logo" aria-label="Moondrop"><span class="a">Moon</span><span class="b">drop</span></div>
+      <p class="tag">Tilt to steer, hold to burn. Set cargo down soft on four hostile moons.</p>
+    </div>
+    <div>
+      <div class="menu">
+        <button id="tPlay" class="primary">Play</button>
+        <button id="tSet" class="ghost">Settings</button>
+        <button id="tArc" class="ghost" hidden>Back to arcade</button>
+      </div>
+      <div class="foot"><span>Tilt your phone to steer</span><span>STARS <b id="tStars">0</b></span></div>
+    </div>
+  </section>
+
+  <section id="levels" class="screen" hidden>
+    <div><div class="eyebrow">Choose a mission</div><h2>Missions</h2></div>
+    <div class="grid scroll" id="lvGrid"></div>
+    <div class="bot"><button id="lvBack" class="ghost" style="flex:1;min-height:48px;border-radius:14px">Back</button></div>
+  </section>
+
+  <section id="pause" class="screen dim" hidden>
+    <div class="panel">
+      <div class="eyebrow">Paused</div><h2 id="pTitle">Mission 1</h2>
+      <button id="pRes" class="primary">Resume</button>
+      <button id="pCal">Recalibrate tilt</button>
+      <button id="pRestart">Restart mission</button>
+      <button id="pSet">Settings</button>
+      <button id="pQuit" class="ghost">Missions</button>
+    </div>
+  </section>
+
+  <section id="result" class="screen dim" hidden>
+    <div class="panel">
+      <div class="eyebrow" id="rEye">Mission 1</div><h2 id="rTitle">Touchdown</h2>
+      <div id="rStars"></div>
+      <p id="rSub"></p>
+      <dl class="rows" id="rRows"></dl>
+      <button id="rMain" class="primary">Next mission</button>
+      <button id="rAlt" class="ghost">Retry</button>
+    </div>
+  </section>
+
+  <section id="settings" class="screen dim" hidden>
+    <div class="panel scroll">
+      <div class="eyebrow">Settings</div>
+      <div class="opt"><span>Sound effects</span><button class="tog" data-set="sfx" aria-label="Sound effects"></button></div>
+      <div class="opt"><span>Music</span><button class="tog" data-set="music" aria-label="Music"></button></div>
+      <div class="opt"><span>Vibration</span><button class="tog" data-set="vibe" aria-label="Vibration"></button></div>
+      <div class="opt"><span>Steering</span><div class="seg" data-seg="ctrl"><button data-v="tilt">Tilt</button><button data-v="touch">Touch</button></div></div>
+      <p class="hint" id="ctrlHint"></p>
+      <div class="opt" id="sensRow"><span>Tilt sensitivity</span><div class="seg" data-seg="sens"><button data-v="low">Low</button><button data-v="med">Med</button><button data-v="high">High</button></div></div>
+      <button id="setReset" class="danger">Reset all progress</button>
+      <button id="setClose" class="primary">Done</button>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,8 @@
+{
+ "title": "Moondrop",
+ "tagline": "Tilt-steered lander",
+ "blurb": "Tilt your phone to steer and hold to burn. Land cargo softly on twelve missions across four hostile moons.",
+ "order": 3,
+ "accent": "#b36bff",
+ "save_key": "moondrop.save.v1"
+}

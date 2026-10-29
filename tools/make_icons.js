@@ -49,6 +49,23 @@ const DRAW={
    g.fillStyle='#ffc531';for(const [x,y] of [[300,92],[330,120]]){g.beginPath();g.arc(x,y,9,0,7);g.fill();}
    glow(300,92,22,'#ff9a2e');
  }`,
+ moondrop:`(g)=>{
+   const bg=g.createRadialGradient(256,150,20,256,256,380);bg.addColorStop(0,'#1d1760');bg.addColorStop(1,'#07061a');g.fillStyle=bg;g.fillRect(0,0,512,512);
+   let seed=5;const r=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+   for(let i=0;i<55;i++){g.globalAlpha=.25+r()*.6;g.fillStyle='#cfd8ff';const z=r()*2.4+.6;g.fillRect(r()*512,r()*340,z,z);}g.globalAlpha=1;
+   g.fillStyle='#2a3f8f';g.beginPath();g.arc(410,96,58,0,7);g.fill();g.strokeStyle='#9fb8ff';g.lineWidth=5;g.beginPath();g.ellipse(410,96,92,22,-.35,0,7);g.stroke();
+   const poly=(pts,fill)=>{g.fillStyle=fill;g.beginPath();g.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)g.lineTo(pts[i],pts[i+1]);g.closePath();g.fill();};
+   poly([0,392,70,360,130,380,170,350,342,350,380,372,440,340,512,370,512,512,0,512],'#5a6294');poly([0,420,70,388,130,408,170,378,342,378,380,400,440,368,512,398,512,512,0,512],'#2c3262');
+   poly([172,350,340,350,340,362,172,362],'#8a92c8');g.fillStyle='#ffc531';g.fillRect(186,348,10,12);g.fillRect(316,348,10,12);
+   for(const x of [180,332]){const q=g.createRadialGradient(x,328,1,x,328,18);q.addColorStop(0,'#ffffff');q.addColorStop(.3,'#3ef0ff');q.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=q;g.fillRect(x-18,310,36,36);}
+   g.save();g.translate(256,200);g.rotate(-.18);
+   const fl=g.createLinearGradient(0,40,0,170);fl.addColorStop(0,'rgba(255,230,176,1)');fl.addColorStop(.35,'rgba(255,155,61,.9)');fl.addColorStop(1,'rgba(255,155,61,0)');
+   g.fillStyle=fl;g.beginPath();g.moveTo(-20,48);g.lineTo(20,48);g.lineTo(0,170);g.closePath();g.fill();
+   g.strokeStyle='#8a92c8';g.lineWidth=9;g.lineCap='round';g.beginPath();g.moveTo(-34,22);g.lineTo(-62,74);g.moveTo(34,22);g.lineTo(62,74);g.stroke();
+   g.fillStyle='#8a92c8';g.fillRect(-80,70,36,9);g.fillRect(44,70,36,9);
+   poly([-58,0,0,-62,58,0,40,30,-40,30],'#e8eefc');poly([-48,16,48,16,40,42,-40,42],'#5a6290');poly([-24,-6,0,-40,24,-6],'#3ef0ff');
+   g.restore();
+ }`,
 };
 (async()=>{const b=await chromium.launch();const p=await b.newPage();
  const render=async(key,size,mask)=>{const data=await p.evaluate(([src,size,mask])=>{const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');
