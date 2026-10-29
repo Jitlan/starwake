@@ -1,0 +1,8 @@
+{
+ "title": "__TITLE__",
+ "tagline": "Short genre line",
+ "blurb": "One or two sentences for the arcade launcher card.",
+ "order": 99,
+ "accent": "#5dff9b",
+ "save_key": "__ID__.save.v1"
+}

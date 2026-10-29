@@ -1013,6 +1013,8 @@ $('tGo').onclick=()=>{
   if(S.started&&!confirmNew){confirmNew=true;$('tWarn').hidden=false;markDiff();return;}
   const keep={set:S.set,best:S.best,lvlBest:S.lvlBest,stats:S.stats};S=fresh();Object.assign(S,keep);S.diff=newDiff;S.started=true;save();startLevel(0);};
 $('tSet').onclick=()=>openSettings('title');
+// Only set when the game is served inside the arcade app (see tools/build.py).
+if(window.ARCADE){$('tArc').hidden=false;$('tArc').onclick=()=>{save();location.href=window.ARCADE.home;};}
 $('sSet').onclick=()=>openSettings('shop');
 $('pSet').onclick=()=>openSettings('pause');
 $('sPrev').onclick=()=>{S.next=Math.max(0,S.next-1);save();applyTheme(LEVELS[S.next]);renderShop();};

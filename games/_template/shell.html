@@ -1,0 +1,48 @@
+<style>
+/* Shared arcade look: same palette, fonts and safe-area gutters as Starwake and Wreckwatch. */
+:root{
+  --void:#07061a; --panel:rgba(14,12,40,.92); --line:#2d2970; --ink:#eef0ff; --dim:#9497cf; --faint:#5d5f99;
+  --player:#3ef0ff; --enemy:#ff3d7f; --gold:#ffc531; --good:#5dff9b;
+  --f-display:"Avenir Next Condensed","Futura","Arial Narrow","Roboto Condensed","Helvetica Neue",system-ui,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --gl:max(16px,env(safe-area-inset-left,0px)); --gr:max(16px,env(safe-area-inset-right,0px));
+  --gt:env(safe-area-inset-top,0px); --gb:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;background:var(--void);color:var(--ink);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+body{font:14px/1.4 var(--f-body)}
+#stage{position:fixed;inset:0;overflow:hidden;touch-action:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+.eyebrow{font:600 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+#hud{position:absolute;left:0;right:0;top:0;padding:calc(var(--gt) + 12px) var(--gr) 0 var(--gl);display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+#hud b{display:block;margin-top:4px;font:700 22px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+#bPause{pointer-events:auto;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(10,8,30,.6);display:grid;place-items:center}
+#bPause::before{content:"";width:12px;height:14px;border-left:4px solid var(--ink);border-right:4px solid var(--ink);box-sizing:border-box}
+.screen{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;justify-content:space-between;padding:calc(var(--gt) + 18px) var(--gr) calc(var(--gb) + 18px) var(--gl);box-sizing:border-box}
+.screen.dim{background:rgba(7,6,26,.8);justify-content:center;align-items:center}
+.logo{margin-top:8vh;text-align:center;font:900 italic clamp(56px,18vw,96px)/.9 var(--f-display);text-transform:uppercase;color:var(--good);text-shadow:4px 4px 0 var(--enemy)}
+.tag{margin:16px auto 0;max-width:30ch;text-align:center;color:var(--dim)}
+.menu{display:grid;gap:10px;width:100%;max-width:360px;margin:0 auto}
+.menu button{min-height:50px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-weight:650;font-size:15px}
+.primary{background:var(--player)!important;color:#04121a;border-color:transparent!important;font-weight:800!important;text-transform:uppercase;letter-spacing:.08em}
+.ghost{background:transparent!important;border-color:transparent!important;color:var(--dim)}
+</style>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div id="hud" hidden><div><div class="eyebrow">Score</div><b id="hScore">0</b></div><button id="bPause" aria-label="Pause"></button></div>
+  <section id="title" class="screen">
+    <div><div class="logo">__TITLE__</div><p class="tag">Tap anywhere to pop the shapes. Replace this with your game.</p></div>
+    <div class="menu">
+      <button id="tPlay" class="primary">Play</button>
+      <button id="tArc" class="ghost" hidden>Back to arcade</button>
+    </div>
+  </section>
+  <section id="pause" class="screen dim" hidden>
+    <div class="menu"><button id="pRes" class="primary">Resume</button><button id="pQuit">Quit to title</button></div>
+  </section>
+</div>

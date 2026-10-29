@@ -1,5 +1,5 @@
-# Rebuilds the game and republishes the live site whenever main changes.
-# The site is served by GitHub Pages from the gh-pages branch, which holds the contents of dist/starwake-app/.
+# Rebuilds the arcade and republishes the live site whenever main changes.
+# The site is served by GitHub Pages from the gh-pages branch, which holds the contents of dist/arcade/.
 name: Publish
 
 on:
@@ -23,13 +23,13 @@ jobs:
       - name: Build
         run: python3 tools/build.py
 
-      - name: Push the web app to gh-pages
+      - name: Push the arcade to gh-pages
         run: |
           git fetch --depth 1 origin gh-pages
           git worktree add pages FETCH_HEAD
           cd pages
           git rm -rq --ignore-unmatch .
-          cp -r ../dist/starwake-app/. .
+          cp -r ../dist/arcade/. .
           touch .nojekyll
           git add -A
           if git diff --cached --quiet; then

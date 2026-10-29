@@ -1,0 +1,8 @@
+{
+ "title": "Starwake",
+ "tagline": "Vertical shooter",
+ "blurb": "Five sectors of crossfire, multi-phase bosses and a hangar of upgrades. Fly with one thumb.",
+ "order": 1,
+ "accent": "#3ef0ff",
+ "save_key": "starwake.save.v1"
+}

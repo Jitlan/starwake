@@ -1,0 +1,8 @@
+{
+ "title": "Wreckwatch",
+ "tagline": "Base defense roguelite",
+ "blurb": "Your frigate is down. Build defenses from a hand of cards and hold five drifting rocks while the engineers repair it.",
+ "order": 2,
+ "accent": "#ffc531",
+ "save_key": "wreckwatch.save.v1"
+}
