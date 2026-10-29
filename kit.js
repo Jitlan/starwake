@@ -2,7 +2,8 @@
    - The low-poly model builder and its material (flat shading, per-part colors, unlit glowing parts, hit flash).
    - Starwake's aliens and bosses, so every game fights the same cast.
    - Instanced glow quads (particles, bullets, beams) and their shaders.
-   - The synthesizer: sound effects and the chiptune music generator. */
+   - The synthesizer: sound effects and the chiptune music generator.
+   - Phone tilt input for motion-controlled games. */
 window.ARC=(function(){
 'use strict';
 const T=THREE, TAU=Math.PI*2, PI=Math.PI;
@@ -169,6 +170,10 @@ function synth(o){return{ctx:null,last:{},
   nz(t,dur,vol,ft,f0,f1,dest,q){const c=this.ctx,s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=this.nb;f.type=ft;
     f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);if(q)f.Q.value=q;
     g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);s.connect(f);f.connect(g);g.connect(dest||this.sfx);s.start(t,Math.random()*.5);s.stop(t+dur+.03);},
+  // A sustained filtered-noise voice (engines, wind). Returns {set(volume, filterHz)}, or null before audio exists.
+  loop(type,hz){if(!this.ctx)return null;const c=this.ctx,s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+    s.buffer=this.nb;s.loop=true;f.type=type||'lowpass';f.frequency.value=hz||600;g.gain.value=0;s.connect(f);f.connect(g);g.connect(this.sfx);s.start();
+    return{set(v,fq){const t=c.currentTime;g.gain.setTargetAtTime(v,t,.04);if(fq)f.frequency.setTargetAtTime(fq,t,.05);}};},
   play(n,a){const c=this.ctx;if(!c||!o.sfx()||c.state!=='running')return;const now=c.currentTime,th=(o.thr&&o.thr[n])||0;
     if(this.last[n]&&now-this.last[n]<th)return;this.last[n]=now;const f=o.sounds[n];if(f)f(this,now+.005,a);}
 };}
@@ -191,5 +196,23 @@ function music(snd,o){return{on:false,mode:'',step:0,next:0,bpm:128,key:45,prog:
 };}
 function vibe(on,ms){if(!on||!navigator.vibrate)return;try{navigator.vibrate(ms);}catch(e){}}
 
-return{P,M,geo,makeMat,ALIENS,BOSSES,disposeGroup,Batch,VS_PLANE,VS_ISO,FX_FS,EB_FS,synth,music,mtof,vibe};
+/* ================================================================ MOTION (phone tilt) */
+/* motion.read() = left-right tilt in radians relative to calibrate(), positive = right side down. It works however the phone
+   is held, upright like a steering wheel or flat like a tray, because it uses the gravity vector rather than raw Euler angles.
+   iOS only grants sensor access from inside a tap, so call motion.start() from a button handler; it resolves true when
+   permission is granted. motion.live says whether readings are actually arriving (false on desktops). */
+const motion={ok:false,on:false,denied:false,raw:0,zero:0,last:0,
+  start(){const D=window.DeviceOrientationEvent;if(!D)return Promise.resolve(false);
+    const go=()=>{if(!this.on){this.on=true;window.addEventListener('deviceorientation',e=>this.ev(e));}return true;};
+    if(typeof D.requestPermission==='function')return D.requestPermission().then(r=>{if(r==='granted')return go();this.denied=true;return false;}).catch(()=>{this.denied=true;return false;});
+    return Promise.resolve(go());},
+  ev(e){if(e.beta==null||e.gamma==null)return;const b=e.beta*PI/180,g=e.gamma*PI/180;
+    // Gravity in device coordinates (W3C z-x'-y'' order), then turned into screen coordinates if the screen is rotated.
+    const gx=Math.sin(g)*Math.cos(b),gy=-Math.sin(b),a=((screen.orientation&&screen.orientation.angle)||window.orientation||0)*PI/180;
+    const sx=gx*Math.cos(a)-gy*Math.sin(a);this.raw=Math.asin(Math.max(-1,Math.min(1,sx)));this.ok=true;this.last=performance.now();},
+  calibrate(){this.zero=this.raw;},
+  get live(){return this.ok&&performance.now()-this.last<1500;},
+  read(){return this.raw-this.zero;}};
+
+return{P,M,geo,makeMat,ALIENS,BOSSES,disposeGroup,Batch,VS_PLANE,VS_ISO,FX_FS,EB_FS,synth,music,mtof,vibe,motion};
 })();
