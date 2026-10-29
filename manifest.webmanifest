@@ -1,7 +1,7 @@
 {
- "name": "Starwake",
- "short_name": "Starwake",
- "description": "Offline vertical space shooter.",
+ "name": "Starwake Arcade",
+ "short_name": "Arcade",
+ "description": "Offline games made entirely in code.",
  "start_url": "./",
  "scope": "./",
  "display": "fullscreen",
