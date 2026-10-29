@@ -210,6 +210,7 @@ function startMission(i){
   Object.assign(ship,{x:st.x,y:st.y,vx:1.3,vy:0,a:0,ta:0,fuel:L.fuel,max:L.fuel,thr:false,on:null,settle:0,t:0,target:0,soft:9,dead:'',deadT:0,flash:0,used:false,warnT:0});
   pt.n=db.n=0;doneT=0;cam.x=st.x;cam.y=st.y-2;cam.d=24;
   ship.cal=S.set.ctrl==='tilt';   // "level" becomes however the phone is held at the first reading
+  for(const id of ['banner','toast'])$(id).classList.remove('go');   // nothing from the last mission carries over
   state='play';hideScreens();$('hud').hidden=false;$('hint').hidden=false;$('hint').textContent=steerHint();
   $('hName').textContent='Mission '+(mi+1)+' · '+L.name;$('hMoon').textContent=world.mo.name+' · gravity '+world.mo.g.toFixed(1);
   $('hPads').innerHTML=world.pads.map((_,k)=>'<i'+(k?'':' class="cur"')+'></i>').join('');$('wind').hidden=!L.wind;
