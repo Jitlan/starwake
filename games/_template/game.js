@@ -1,4 +1,4 @@
-/* __TITLE__: a starting point for an arcade game. Everything is generated in code; THREE is loaded before this file. */
+/* __TITLE__: a starting point for an arcade game. Everything is generated in code; THREE and ARC (shared/kit.js) load before this file. */
 (function(){
 'use strict';
 const T=THREE, TAU=Math.PI*2;
@@ -20,25 +20,11 @@ const hemi=new T.HemisphereLight(0xc8d4ff,0x3a2050,1.3);hemi.position.set(0,0,1)
 const sun=new T.DirectionalLight(0xffffff,2.3);sun.position.set(-3,4,8);scene.add(hemi,sun);
 function resize(){const w=window.innerWidth,h=window.innerHeight;renderer.setPixelRatio(DPR);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 
-/* ---------------------------------------------------------------- LOW-POLY MODELS
-   The arcade look: primitives merged into one flat-shaded mesh, per-part colors, and parts flagged e:1 drawn unlit so they glow. */
-const P={box:(w,h,d)=>new T.BoxGeometry(w,h,d),oct:r=>new T.OctahedronGeometry(r),ico:(r,d)=>new T.IcosahedronGeometry(r,d||0),tor:(r,t,a,b)=>new T.TorusGeometry(r,t,a||4,b||14)};
-const _m4=new T.Matrix4(),_q=new T.Quaternion(),_e=new T.Euler(),_p=new T.Vector3(),_s=new T.Vector3(),_c=new T.Color();
-function geo(parts){
-  const Pp=[],N=[],C=[],E=[];const a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3(),ab=new T.Vector3(),cb=new T.Vector3();
-  for(const pt of parts){const g=pt.g.index?pt.g.toNonIndexed():pt.g,pos=g.getAttribute('position'),p=pt.p||[0,0,0],r=pt.r||[0,0,0],s=pt.s||[1,1,1];
-    _m4.compose(_p.set(p[0],p[1],p[2]),_q.setFromEuler(_e.set(r[0],r[1],r[2])),_s.set(s[0],s[1],s[2]));_c.setHex(pt.c);
-    for(let i=0;i<pos.count;i+=3){a.fromBufferAttribute(pos,i).applyMatrix4(_m4);b.fromBufferAttribute(pos,i+1).applyMatrix4(_m4);c.fromBufferAttribute(pos,i+2).applyMatrix4(_m4);
-      cb.subVectors(c,b);ab.subVectors(a,b);cb.cross(ab).normalize();
-      for(const v of [a,b,c]){Pp.push(v.x,v.y,v.z);N.push(cb.x,cb.y,cb.z);C.push(_c.r,_c.g,_c.b);E.push(pt.e?1:0);}}}
-  const out=new T.BufferGeometry();out.setAttribute('position',new T.Float32BufferAttribute(Pp,3));out.setAttribute('normal',new T.Float32BufferAttribute(N,3));
-  out.setAttribute('color',new T.Float32BufferAttribute(C,3));out.setAttribute('aEmis',new T.Float32BufferAttribute(E,1));return out;
-}
-function makeMat(){const m=new T.MeshLambertMaterial({vertexColors:true});
-  m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aEmis;varying float vEmis;').replace('#include <begin_vertex>','#include <begin_vertex>\nvEmis=aEmis;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vEmis;').replace('#include <dithering_fragment>','gl_FragColor.rgb=mix(gl_FragColor.rgb,linearToOutputTexel(vec4(vColor*1.25,1.0)).rgb,vEmis);\n#include <dithering_fragment>');};
-  return m;}
-const MAT=makeMat();
+/* ---------------------------------------------------------------- MODELS
+   window.ARC (shared/kit.js) has the arcade look: ARC.geo merges primitives into one flat-shaded mesh with per-part colors,
+   parts flagged e:1 glow, and ARC.makeMat() is the material for it. ARC.ALIENS and ARC.BOSSES are Starwake's cast;
+   ARC.Batch draws glow particles and ARC.synth / ARC.music make sound. */
+const {P,geo}=ARC,MAT=ARC.makeMat(false);
 const SHAPE=geo([{g:P.oct(.6),c:0x3ef0ff,s:[1,1,.7]},{g:P.tor(.85,.07,3,16),c:0xff3d7f,e:1},{g:P.oct(.2),c:0xffd23d,e:1,p:[0,0,.35]}]);
 
 /* ---------------------------------------------------------------- GAME */

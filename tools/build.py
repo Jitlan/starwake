@@ -2,7 +2,7 @@
   dist/<id>.html          single file for a Claude artifact
   dist/<id>-offline.html  single file that runs straight from disk
   dist/arcade/            the installable web app: a launcher page plus one folder per game,
-                          sharing one copy of three.js and one offline service worker
+                          sharing one copy of three.js, the arcade kit and one offline service worker
   dist/arcade.zip         the same app, zipped
 Run from anywhere: python3 tools/build.py"""
 import os,json,hashlib,shutil,zipfile,html
@@ -14,6 +14,7 @@ three=open(os.path.join(root,'vendor/three.min.js')).read()
 first,rest=three.split('\n',1)
 assert first.startswith('console.warn(') and first.endswith('),')
 three='void 0,\n'+rest  # drop the r150+ deprecation warning
+kit=open(os.path.join(root,'shared/kit.js')).read()  # code every game shares, loaded as window.ARC
 
 games=[]
 gdir=os.path.join(root,'games')
@@ -24,7 +25,7 @@ for gid in sorted(os.listdir(gdir)):
     g['id']=gid; g['dir']=d
     g['shell']=open(os.path.join(d,'shell.html')).read()
     g['game']=open(os.path.join(d,'game.js')).read()
-    for name,src in (('three',three),(gid,g['game'])):
+    for name,src in (('three',three),('kit',kit),(gid,g['game'])):
         assert '</script' not in src.lower() and '<!--' not in src, name
     games.append(g)
 games.sort(key=lambda g:(g.get('order',99),g['id']))
@@ -35,7 +36,7 @@ def head(title,extra=''):
      '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">\n'
      '<meta name="theme-color" content="#07061a">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n'
      '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'+extra+'<title>'+html.escape(title)+'</title>\n</head>\n<body>\n')
-inline=lambda g:'<script>\n'+three+'\n</script>\n<script>\n'+g['game']+'\n</script>\n'
+inline=lambda g:'<script>\n'+three+'\n</script>\n<script>\n'+kit+'\n</script>\n<script>\n'+g['game']+'\n</script>\n'
 
 # ---- Single-file builds, one pair per game ----
 for g in games:
@@ -51,6 +52,7 @@ os.makedirs(app)
 for f in ('icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'):
     shutil.copy(os.path.join(root,'icons',f),os.path.join(app,f))
 open(os.path.join(app,'three.js'),'w').write(three)
+open(os.path.join(app,'kit.js'),'w').write(kit)
 def sw_reg(base):  # registers the one service worker that covers the whole app
     return ('<script>\nif("serviceWorker" in navigator&&location.protocol.indexOf("http")===0){'
      'window.addEventListener("load",function(){navigator.serviceWorker.register("'+base+'sw.js",{scope:"'+base+'"}).catch(function(){});});}\n</script>\n')
@@ -60,7 +62,7 @@ def pwa(base,title):
 for g in games:
     gd=os.path.join(app,g['id']); os.makedirs(gd)
     page=(head(g['title'],pwa('../','Arcade'))+g['shell']+'\n'
-      '<script>window.ARCADE={home:"../"};</script>\n<script src="../three.js"></script>\n<script>\n'+g['game']+'\n</script>\n'+sw_reg('../')+'</body>\n</html>\n')
+      '<script>window.ARCADE={home:"../"};</script>\n<script src="../three.js"></script>\n<script src="../kit.js"></script>\n<script>\n'+g['game']+'\n</script>\n'+sw_reg('../')+'</body>\n</html>\n')
     open(os.path.join(gd,'index.html'),'w').write(page)
     icon=os.path.join(g['dir'],'icon.png'); g['has_icon']=os.path.isfile(icon)
     if g['has_icon']: shutil.copy(icon,os.path.join(gd,'icon.png'))

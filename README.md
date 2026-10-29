@@ -23,6 +23,7 @@ Each device keeps its own saves. If you installed Starwake before the arcade exi
 - `games/_template/`: a minimal game to start from. See its README. The build skips folders that start with `_`.
 - `arcade/launcher.html`: the arcade's front page. The build adds a card for each game.
 - `vendor/three.min.js`: Three.js r158 (MIT, see `vendor/THREE-LICENSE`), shared by every game.
+- `shared/kit.js`: code every game shares, loaded as `window.ARC`: the low-poly model builder and material, Starwake's aliens and bosses, glow particles, and the synthesizer for sound and music.
 - `icons/`: the arcade's app icons. `node tools/make_icons.js` redraws them and each game's `icon.png` (needs Playwright).
 - `tools/build.py`: writes `dist/`. `tools/new_game.py`: starts a new game from the template.
 
