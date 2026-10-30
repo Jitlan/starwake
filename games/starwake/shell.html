@@ -121,11 +121,12 @@ button:disabled{opacity:.4;cursor:default}
 .sec-mid{text-align:center;min-width:0}
 .sec-name{margin-top:5px;font:800 italic 22px/1.05 var(--f-display);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sec-meta{margin-top:4px;color:var(--dim);font:500 12px/1.3 var(--f-mono)}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:12px;padding:4px;border-radius:14px;background:rgba(255,255,255,.04)}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:12px;padding:4px;border-radius:14px;background:rgba(255,255,255,.04)}
 .tabs button{height:38px;border:0;border-radius:10px;background:transparent;color:var(--dim);font-weight:700;font-size:13px;letter-spacing:.04em}
 .tabs button.on{background:var(--deep);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
 .list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;display:grid;align-content:start;gap:10px;padding:12px 0 16px}
 .item{display:grid;gap:6px;padding:14px;border-radius:16px;border:1px solid var(--line);background:rgba(16,13,46,.75)}
+.item.locked{opacity:.55}
 .item.eq{border-color:rgba(62,240,255,.55);box-shadow:inset 3px 0 0 var(--player)}
 .it-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .it-name{font:800 italic 19px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.02em;min-width:0}
@@ -193,7 +194,7 @@ button:disabled{opacity:.4;cursor:default}
   <section id="title" class="screen">
     <div>
       <div class="logo" aria-label="Starwake"><span class="l1">Star</span><span class="l2">wake</span></div>
-      <p class="tag">Five sectors of crossfire between you and the Eclipse Gate. Fly with one thumb.</p>
+      <p class="tag">Ten sectors of crossfire between you and the Throne of Night. Fly with one thumb.</p>
     </div>
     <div class="tmid">
       <div class="menu" id="tMain">
@@ -228,7 +229,7 @@ button:disabled{opacity:.4;cursor:default}
       <button id="sNext" aria-label="Next sector">&rsaquo;</button>
     </div>
     <nav class="tabs" id="sTabs">
-      <button data-tab="front" class="on">Guns</button><button data-tab="side">Pods</button><button data-tab="special">Special</button><button data-tab="hull">Hull</button>
+      <button data-tab="ships">Ships</button><button data-tab="front" class="on">Guns</button><button data-tab="side">Pods</button><button data-tab="special">Special</button><button data-tab="hull">Hull</button>
     </nav>
     <div class="list scroll" id="sList"></div>
     <div class="shop-foot">

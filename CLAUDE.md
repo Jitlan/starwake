@@ -4,7 +4,7 @@ A for-fun project: offline, touch-first browser games built entirely in code, pl
 
 ## Layout
 - `games/<id>/`: one game per folder: `game.js`, `shell.html` (CSS + markup pasted into `<body>`), `game.json` (launcher card + save key), optional `icon.png`.
-  - `starwake`: vertical bullet-hell shooter (the original game).
+  - `starwake`: vertical bullet-hell shooter (the original game): 10 sectors, 5 ships, New Game+.
   - `wreckwatch`: isometric base-defense roguelite set in Starwake's universe.
   - `moondrop`: tilt-steered lunar lander (phone motion sensors, touch fallback).
   - `rustybuckets`: turn-based team battler (prelude to Wreckwatch) with timed hits, puzzles before each battle, four of them tilt-driven.
@@ -32,6 +32,11 @@ Match the existing dense style: compact single-letter locals, short one-line fun
 - Click or tap once in tests so audio starts. Some bugs (music) only appear once the AudioContext exists.
 - Before pushing a gameplay change: screenshot the affected screens, check for `pageerror`s, and for Wreckwatch run a scripted bot through whole runs on each difficulty to catch stalls and balance swings.
 - Offline check: load the launcher, wait for an `arcade-*` cache, `context.setOffline(true)`, then reload and open each game.
+
+## Starwake notes
+- Save migration lives in `migrate()`: old single-ship hull upgrades move to `fleet.starwake`, ships unlock for sectors already cleared, `lvlBest` grows to 10. Keep it when changing the save shape.
+- `DF()` is difficulty with New Game+ folded in (per-loop multipliers in `NG`), cached by `diff|ng`. Read multipliers through it, never `DIFF` directly.
+- Ship signatures hook into `fireFront` (Starwake rate, Phantom echo bolts), the enemy-bullet loop (Hornet graze), `hurt` (Bulwark reflector) and `specMul`/`specCost` (Valkyrie).
 
 ## Wreckwatch notes
 - World: ground is the XY plane, +z up, 1 unit per tile. Orthographic camera at 52° elevation; `fit()` sizes the rock into the space between the HUD bars. The rock sits on a 23×23 nav grid (`NAV`, center `C`); tile kinds `VOID/LAND/ROCK/SHIP`.
