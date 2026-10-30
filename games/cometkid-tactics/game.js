@@ -33,7 +33,7 @@ const CARDS={
  volley:{n:'Volley',cost:3,c:0x4aa8ff,dmg:10,s:'Every row',d:'One shot down each of the three rows.',w:1.2},
  quake: {n:'Quake',cost:3,c:0xb36bff,dmg:6,s:'All + stun',d:'Hits every alien and stuns them for 1.5 seconds.',w:1},
  ward:  {n:'Ward',cost:2,c:0xd08cff,s:'Block hits',d:'Crystals that block the next two hits (one more per upgrade).',w:1},
- patch: {n:'Patch',cost:1,c:0x5dff9b,heal:12,s:'Repair',d:'Repairs 12 HP. Once per fight.',w:1.4,once:1},
+ patch: {n:'Patch',cost:1,c:0x5dff9b,heal:12,s:'Repair',d:'Repairs 12 HP. Once per fight.',w:1,once:1},
  nova:  {n:'Nova',cost:3,c:0xffe6b0,dmg:28,s:'Row blast',d:'A huge blast that pierces your whole row.',w:.6},
 };
 // A run starts owning START plus EXTRA; START is the opening deck. Decks hold DECK_MIN cards up to deckMax() (8, +1 per guardian beaten).
@@ -71,8 +71,15 @@ const LV=[{key:45,bpm:134,prog:[0,8,3,10]},{key:43,bpm:138,prog:[0,5,3,10]},{key
 /* ===== TUNING (tiles, seconds) */
 // Per fight, alien HP grows HPG and their hits DMGG (of the fight-1 values). Between fights Comet Kid repairs REST HP.
 // Each Buster upgrade adds 2 to the charged shot (and 1 to the tap shot every second level).
-const TS=1.5,FIX=1/60,HMAX=60,EMAX=5,EREG=1.6,CH=1.2,BCD=.3,STEP=.075,INV=.55,BUSTER=1,CHARGED=5,REST=8,DMG=2,ACD=.85,HPG=.045,DMGG=.05;
+const TS=1.5,FIX=1/60,HMAX=60,EMAX=5,EMAX_TOP=8,BL_TOP=4,EREG=1.6,CH=1.2,BCD=.3,STEP=.075,INV=.55,BUSTER=1,CHARGED=5,REST=8,DMG=2.15,ACD=.85,HPG=.045,DMGG=.04;
 const tx=c=>(c-2.5)*TS,tz=r=>(r-1)*TS;
+
+/* ===== GOLD & SHOP */
+// Patch costs extra: each copy is another heal every fight, and cheap healing makes runs unlosable.
+// Every win pays: a clear bonus that grows with the fight (double for guardians), plus tiers for speed against a par time
+// (the aliens' total HP / PAR_DPS + 5 s), damage taken, and energy efficiency (share of regenerated energy not lost at the cap).
+const GOLD0=35,PAR_DPS=7;
+const PRICE={card:id=>id==='patch'?45:[0,20,35,55][CARDS[id].cost]+(id==='nova'?15:0),up:lv=>[30,50][lv],bust:b=>[30,45,60,80][b],slot:e=>[50,80,120][e-EMAX]};
 
 /* ===== RENDERER & CAMERA */
 const view=$('view'),cv=$('cv');
@@ -172,20 +179,20 @@ const vibe=ms=>ARC.vibe(S.set.vibe,ms);
 /* ===== RUN STATE */
 // R is the run (what the save keeps between fights); G and PL are the current fight.
 let state='title',R=null;
-const G={fi:0,en:[],warns:[],ps:[],es:[],arcs:[],later:[],phase:'title',pt:0,t:0,ft:0,shake:0,lastAtk:-9,god:0,opts:null};
-const PL={c:1,r:1,x:tx(1),z:tz(1),dest:null,mt:0,hp:HMAX,max:HMAX,inv:0,ward:0,en:3,chg:0,charging:0,cd:0,hand:[],next:null,pile:[],spent:[],dead:0,flash:0,shootT:0};
+const G={dmg:0,gen:0,waste:0,par:0,fi:0,en:[],warns:[],ps:[],es:[],arcs:[],later:[],phase:'title',pt:0,t:0,ft:0,shake:0,lastAtk:-9,god:0,opts:null};
+const PL={c:1,r:1,x:tx(1),z:tz(1),dest:null,mt:0,hp:HMAX,max:HMAX,inv:0,ward:0,en:3,emax:EMAX,chg:0,charging:0,cd:0,hand:[],next:null,pile:[],spent:[],dead:0,flash:0,shootT:0};
 const alive=()=>G.en.filter(e=>!e.dead);
 const cdmg=id=>Math.round((CARDS[id].dmg||0)*(1+.35*(R.up[id]||0)));
 function cardLine(id){const C=CARDS[id],lv=R?R.up[id]||0:0;return id==='ward'?'Block '+(2+lv):id==='patch'?'+'+(C.heal+4*lv)+' HP':C.s+' · '+(R?cdmg(id):C.dmg);}
 const cname=id=>CARDS[id].n+(R&&R.up[id]?'+'.repeat(R.up[id]):'');
 
-function newRun(){R={fi:0,hp:HMAX,max:HMAX,lib:START.concat(EXTRA),deck:START.slice(),up:{},bl:0,t:0,bosses:shuffle(GUARDS.slice())};S.runs++;showEdit();}
+function newRun(){R={fi:0,hp:HMAX,max:HMAX,lib:START.concat(EXTRA),deck:START.slice(),up:{},bl:0,t:0,bosses:shuffle(GUARDS.slice()),gold:GOLD0,emax:EMAX,stock:genStock(),lg:null};S.runs++;showEdit();}
 // The save holds the run at each fight start, on the reward screen and in the deck editor (stage), so closing the app replays at
 // most one fight. Runs saved before the editor and the 25-fight gauntlet have no lib/bosses: they get them here.
-function snap(stage){S.run={fi:R.fi,hp:R.hp,max:R.max,lib:R.lib.slice(),deck:R.deck.slice(),up:Object.assign({},R.up),bl:R.bl,t:R.t,bosses:R.bosses.slice(),stage};save();}
+function snap(stage){S.run={fi:R.fi,hp:R.hp,max:R.max,lib:R.lib.slice(),deck:R.deck.slice(),up:Object.assign({},R.up),bl:R.bl,t:R.t,bosses:R.bosses.slice(),gold:R.gold,emax:R.emax,stock:R.stock.slice(),lg:R.lg,stage};save();}
 function continueRun(){const r=S.run;if(!r)return;
   R={fi:r.fi,hp:r.hp,max:r.max,lib:(r.lib||r.deck).slice(),deck:r.deck.slice(),up:Object.assign({},r.up),bl:r.bl||0,t:r.t,
-    bosses:r.bosses||(r.boss?[r.boss].concat(shuffle(GUARDS.filter(g=>g!==r.boss))):shuffle(GUARDS.slice()))};
+    bosses:r.bosses||(r.boss?[r.boss].concat(shuffle(GUARDS.filter(g=>g!==r.boss))):shuffle(GUARDS.slice())),gold:r.gold||0,emax:r.emax||EMAX,stock:r.stock||genStock(),lg:r.lg||null};
   const st=r.stage||(r.pick?'pick':'fight');if(st==='pick')showReward();else if(st==='edit')showEdit();else startFight(R.fi);}
 // the guardian (or Eclipse) of fight i, or null
 const bossOf=i=>FIGHTS[i]==='eclipse'?'eclipse':FIGHTS[i]==='G'?R.bosses[FIGHTS.slice(0,i).filter(f=>f==='G').length]:null;
@@ -199,7 +206,9 @@ function startFight(i){
   const boss=bossOf(i),list=boss?[boss]:FIGHTS[i],hm=1+HPG*i;
   const spots=boss?[[4,1]]:shuffle([[3,0],[3,2],[4,1],[5,0],[5,2],[4,0],[4,2],[5,1]]);
   list.forEach((t,k)=>{const e=spawn(t,spots[k][0],spots[k][1],boss,hm);e.cd=e.d.cd*(.8+k*.5);});
-  Object.assign(PL,{c:1,r:1,x:tx(1),z:tz(1),dest:null,mt:0,hp:R.hp,max:R.max,inv:0,ward:0,en:3,chg:0,charging:0,cd:0,dead:0,flash:0,shootT:0});
+  Object.assign(G,{dmg:0,gen:0,waste:0,par:G.en.reduce((a,e)=>a+e.max,0)/PAR_DPS+5});
+  $('enBar').innerHTML='<i></i>'.repeat(R.emax);$('enBar').style.gridTemplateColumns='repeat('+R.emax+',1fr)';
+  Object.assign(PL,{c:1,r:1,x:tx(1),z:tz(1),dest:null,mt:0,hp:R.hp,max:R.max,inv:0,ward:0,en:3,emax:R.emax,chg:0,charging:0,cd:0,dead:0,flash:0,shootT:0});
   PL.spent=[];PL.pile=shuffle(R.deck.slice());PL.hand=[draw(),draw(),draw()];PL.next=draw();
   Object.assign(G,{phase:'intro',pt:0,ft:0,shake:0,lastAtk:-9});clearInput();
   document.body.classList.add('ingame');$('hud').hidden=false;$('hFight').textContent='Fight '+(i+1)+' / '+NF;$('hFoe').textContent=boss?'Guardian · '+BOSS[boss].n:'';
@@ -295,7 +304,7 @@ function buster(inp,dt){PL.cd-=dt;
     if(inp.br){if(PL.chg>=CH){pshot({dmg:CHARGED+2*R.bl,v:22,lvl:1});Snd.play('shot2');}PL.chg=0;PL.charging=0;}}}
 function hurt(d){if(G.god||PL.inv>0||G.phase!=='fight'||PL.dead)return;
   if(PL.ward>0){PL.ward--;PL.inv=.35;Snd.play('block');pop('BLOCK',PL.x,1.9,PL.z,'tag2');burst(PL.x,.9,PL.z,10,COL.violet,3,.3,.4);vibe(15);return;}
-  d=Math.round(d);PL.hp=Math.max(0,PL.hp-d);PL.inv=INV;PL.flash=.3;G.shake=.35;pop('-'+d,PL.x,1.9,PL.z,'hurt');Snd.play('hurt');vibe(45);
+  d=Math.round(d);G.dmg+=Math.min(d,PL.hp);PL.hp=Math.max(0,PL.hp-d);PL.inv=INV;PL.flash=.3;G.shake=.35;pop('-'+d,PL.x,1.9,PL.z,'hurt');Snd.play('hurt');vibe(45);
   if(PL.hp<=0&&G.god!==2){PL.dead=1;G.phase='dead';G.pt=0;boom(PL.x,.8,PL.z,1.2,COL.cyan);Snd.play('die');vibe([60,40,120]);}}
 function heal(n){const h=Math.min(PL.max-PL.hp,n);PL.hp+=h;pop('+'+h,PL.x,1.9,PL.z,'heal');burst(PL.x,.8,PL.z,10,COL.green,2,.3,.5);Snd.play('heal');}
 function hurtE(e,d){if(e.dead)return;e.hp-=d;e.fl=1;pop(String(d),e.x,e.boss?2.6:1.8,e.z,d>=8?'big':'');Snd.play('hit');
@@ -307,7 +316,7 @@ function tick(inp){
   const dt=FIX;G.t+=dt;inp=inp||readInput();const ph=G.phase;
   G.shake=Math.max(0,G.shake-dt*1.8);PL.flash=Math.max(0,PL.flash-dt);PL.shootT=Math.max(0,PL.shootT-dt);for(const t of TILES)t.fl=Math.max(0,t.fl-dt);
   if(ph==='intro'){G.pt+=dt;move(dt);for(const e of G.en)e.sc=Math.min(1,G.pt/.6);if(G.pt>1.3){G.phase='fight';G.pt=0;}return;}
-  if(ph==='fight'){G.ft+=dt;R.t+=dt;PL.inv=Math.max(0,PL.inv-dt);move(dt);buster(inp,dt);if(inp.card>=0)useCard(inp.card);PL.en=Math.min(EMAX,PL.en+dt/EREG);aliens(dt);}
+  if(ph==='fight'){G.ft+=dt;R.t+=dt;PL.inv=Math.max(0,PL.inv-dt);move(dt);buster(inp,dt);if(inp.card>=0)useCard(inp.card);const g=dt/EREG;G.gen+=g;G.waste+=Math.max(0,PL.en+g-PL.emax);PL.en=Math.min(PL.emax,PL.en+g);aliens(dt);}
   else G.pt+=dt;
   for(let i=G.later.length-1;i>=0;i--){const l=G.later[i];l.t-=dt;if(l.t<=0){G.later.splice(i,1);if(!(l.src&&l.src.dead)&&G.phase==='fight')l.fn();}}
   for(let i=G.warns.length-1;i>=0;i--){const w=G.warns[i];w.t+=dt;if(w.t<w.at)continue;G.warns.splice(i,1);if((w.src&&w.src.dead)||!w.dmg||G.phase!=='fight')continue;
@@ -332,44 +341,69 @@ function aliens(dt){const m=DMG*(1+DMGG*G.fi);
 function hop(e){const n=[[e.c+1,e.r],[e.c-1,e.r],[e.c,e.r+1],[e.c,e.r-1]].filter(([c,r])=>free(c,r,e));
   if(e.boss&&Math.random()<.5){const c=[3,4,5].filter(c=>free(c,PL.r,e));if(c.length){e.c=pick(c);e.r=PL.r;return;}}
   if(n.length){const t=pick(n);e.c=t[0];e.r=t[1];}}
-function fightWon(){R.hp=PL.hp;R.fi=G.fi+1;S.best=Math.max(S.best,R.fi);if(R.fi>=NF){runOver(true);return;}R.hp=Math.min(R.max,R.hp+REST);showReward();}
+function fightWon(){R.hp=PL.hp;R.fi=G.fi+1;S.best=Math.max(S.best,R.fi);if(R.fi>=NF){runOver(true);return;}R.hp=Math.min(R.max,R.hp+REST);payGold();showReward();}
+// rows: [label, detail, gold]
+function payGold(){const i=G.fi,b=bossOf(i),ef=G.gen?1-G.waste/G.gen:1,t=G.ft,par=G.par,rows=[
+  [b?'Guardian down':'Cleared','fight '+(i+1),(8+i)*(b?2:1)],
+  [t<=par?'Fast':t<=par*1.5?'Steady':'Slow',fmt(t)+' · par '+fmt(par),t<=par?10:t<=par*1.5?5:0],
+  [G.dmg===0?'Untouched':G.dmg<=R.max*.15?'Light damage':'Damage taken',G.dmg+' HP',G.dmg===0?12:G.dmg<=R.max*.15?6:0],
+  [ef>=.9?'Efficient':ef>=.7?'Some energy wasted':'Energy wasted',Math.round(ef*100)+'% of energy used',ef>=.9?8:ef>=.7?4:0]];
+  const total=rows.reduce((a,r)=>a+r[2],0);R.gold+=total;R.lg={rows,total};}
 
 /* ===== REWARDS */
 function wpick(ids){let s=0;for(const id of ids)s+=CARDS[id].w;let r=Math.random()*s;for(const id of ids){r-=CARDS[id].w;if(r<=0)return id;}return ids[0];}
 // Two new cards plus a repair (when hurt), or else one of: an upgrade for a card you own, a Buster upgrade, more max HP.
 function genRewards(){const ids=Object.keys(CARDS),o=[];while(o.length<2){const id=wpick(ids);if(!o.some(x=>x.id===id))o.push({k:'card',id});}
-  const ups=[...new Set(R.lib)].filter(id=>(R.up[id]||0)<2),alt=[];if(ups.length)alt.push({k:'up',id:pick(ups)},{k:'up',id:pick(ups)});if(R.bl<4)alt.push({k:'bust'});alt.push({k:'max',n:8});
+  const ups=[...new Set(R.lib)].filter(id=>(R.up[id]||0)<2),alt=[];if(ups.length)alt.push({k:'up',id:pick(ups)},{k:'up',id:pick(ups)});if(R.bl<BL_TOP)alt.push({k:'bust'});alt.push({k:'max',n:8});
   o.push(R.hp<R.max*.6?{k:'heal',n:20}:pick(alt));return o;}
 function showReward(){state='reward';G.phase='done';clearFight();snap('pick');hideScreens();document.body.classList.remove('ingame');$('hud').hidden=true;
   G.opts=genRewards();$('rwEye').textContent='Fight '+R.fi+' / '+NF+' clear · '+R.hp+' / '+R.max+' HP';
   $('rwPicks').innerHTML=G.opts.map((o,i)=>{let c,ic,t,d;
     if(o.k==='card'){const C=CARDS[o.id];c=C.c;ic=C.cost;t=C.n;d=C.d;}
     else if(o.k==='up'){const C=CARDS[o.id],lv=R.up[o.id]||0;c=C.c;ic='+';t='Upgrade '+C.n;
-      d=o.id==='ward'?'Ward blocks '+(3+lv)+' hits instead of '+(2+lv)+'.':o.id==='patch'?'Patch repairs '+(C.heal+4*(lv+1))+' HP instead of '+(C.heal+4*lv)+'.':'Every '+C.n+' you own hits for '+Math.round(C.dmg*(1+.35*(lv+1)))+' instead of '+cdmg(o.id)+'.';}
+      d=upDesc(o.id);}
     else if(o.k==='heal'){c=0x5dff9b;ic='+';t='Repair';d='Restore '+o.n+' HP.';}
-    else if(o.k==='bust'){c=0x3ef0ff;ic='+';t='Upgrade Buster';d='Charged shots hit for '+(CHARGED+2*R.bl+2)+' instead of '+(CHARGED+2*R.bl)+(R.bl%2?', taps for '+(BUSTER+(R.bl>>1)+1):'')+'.';}
+    else if(o.k==='bust'){c=0x3ef0ff;ic='+';t='Upgrade Buster';d=bustDesc();}
     else{c=0x5dff9b;ic='+';t='Reinforce';d='+'+o.n+' max HP, and repair '+o.n+'.';}
     return '<button data-i="'+i+'" style="--c:'+hex(c)+'"><i>'+ic+'</i><b>'+t+'</b><small>'+d+'</small></button>';}).join('');
+  const lg=R.lg;$('rwGold').hidden=!lg;if(lg)$('rwGold').innerHTML=lg.rows.map(r=>'<dt>'+r[0]+' <small>'+r[1]+'</small></dt><dd'+(r[2]?'':' class="z"')+'>+'+r[2]+'</dd>').join('')+'<dt><b>Gold</b> <small>'+R.gold+' total</small></dt><dd><b>+'+lg.total+'</b></dd>';
   $('rwDeck').innerHTML=deckHtml();$('rwNext').textContent='Next: fight '+(R.fi+1)+' · '+fightName(R.fi);$('reward').hidden=false;Mus.play('calm',0);releaseWake();}
+function upDesc(id){const C=CARDS[id],lv=R.up[id]||0;
+  return id==='ward'?'Ward blocks '+(3+lv)+' hits instead of '+(2+lv)+'.':id==='patch'?'Patch repairs '+(C.heal+4*(lv+1))+' HP instead of '+(C.heal+4*lv)+'.':'Every '+C.n+' you own hits for '+Math.round(C.dmg*(1+.35*(lv+1)))+' instead of '+cdmg(id)+'.';}
+const bustDesc=()=>'Charged shots hit for '+(CHARGED+2*R.bl+2)+' instead of '+(CHARGED+2*R.bl)+(R.bl%2?', taps for '+(BUSTER+(R.bl>>1)+1):'')+'.';
 function pickReward(i){const o=G.opts&&G.opts[i];if(!o||state!=='reward')return;
   // a new card joins the collection, and the deck too while there's room
   if(o.k==='card'){R.lib.push(o.id);if(R.deck.length<deckMax())R.deck.push(o.id);}else if(o.k==='up')R.up[o.id]=(R.up[o.id]||0)+1;else if(o.k==='bust')R.bl++;
   else if(o.k==='heal')R.hp=Math.min(R.max,R.hp+o.n);else{R.max+=o.n;R.hp+=o.n;}
-  G.opts=null;Snd.play('click');showEdit();}
+  G.opts=null;R.stock=genStock();Snd.play('click');showEdit();}
 
 /* ===== DECK EDITOR */
 // Before the first fight and after every reward: tap a deck card to take one copy out, a collection card to put one in.
 const groups=a=>{const n={};for(const id of a)n[id]=(n[id]||0)+1;return Object.keys(CARDS).filter(id=>n[id]).map(id=>({id,n:n[id]}));};
 function libRest(){const r=R.lib.slice();for(const id of R.deck){const i=r.indexOf(id);if(i>=0)r.splice(i,1);}return r;}
-function showEdit(){state='edit';G.phase='done';clearFight();snap('edit');hideScreens();document.body.classList.remove('ingame');$('hud').hidden=true;
+let edTab='deck';
+function genStock(){const ids=Object.keys(CARDS),o=[];for(let k=0;k<12&&o.length<4;k++){const id=wpick(ids);if(!o.includes(id))o.push(id);}return o;}
+function showEdit(){edTab='deck';state='edit';G.phase='done';clearFight();snap('edit');hideScreens();document.body.classList.remove('ingame');$('hud').hidden=true;
   $('edit').hidden=false;renderEdit();Mus.play('calm',0);releaseWake();}
 function renderEdit(){const mx=deckMax(),n=R.deck.length,full=n>=mx,thin=n<=DECK_MIN;
-  $('edEye').textContent='Before fight '+(R.fi+1)+' / '+NF+' · '+R.hp+' / '+R.max+' HP';$('edNext').textContent='Next: '+fightName(R.fi);
+  $('edEye').textContent='Before fight '+(R.fi+1)+' / '+NF+' · '+R.hp+' / '+R.max+' HP';$('edGold').textContent=R.gold;
+  for(const b of document.querySelectorAll('#edTabs button'))b.classList.toggle('on',b.dataset.tab===edTab);$('edDeckTab').hidden=edTab!=='deck';$('edShopTab').hidden=edTab!=='shop';renderShop();$('edNext').textContent='Next: '+fightName(R.fi);
   $('edN').textContent=n+' / '+mx;$('edGo').textContent='Start fight '+(R.fi+1);
   const tile=(g,where,off)=>{const C=CARDS[g.id];return '<button class="ec'+(off?' off':'')+'" data-id="'+g.id+'" data-w="'+where+'" style="--c:'+hex(C.c)+'"><i>'+C.cost+'</i><b>'+cname(g.id)+'</b><small>'+cardLine(g.id)+'</small>'+(g.n>1?'<em>×'+g.n+'</em>':'')+'</button>';};
   $('edDeck').innerHTML=groups(R.deck).map(g=>tile(g,'deck',thin)).join('');
   const rest=groups(libRest());$('edLib').innerHTML=rest.length?rest.map(g=>tile(g,'lib',full)).join(''):'<p class="hint">Every card you own is in the deck.</p>';
-  $('edHint').textContent=full?'Deck is full: take a card out to put another in.':thin?'Decks need at least '+DECK_MIN+' cards.':'Tap a card to move it. Smaller decks draw their best cards more often.';}
+  $('edHint').textContent=edTab==='shop'?'Tap an item to buy it. New cards join your deck while it has room.':full?'Deck is full: take a card out to put another in.':thin?'Decks need at least '+DECK_MIN+' cards.':'Tap a card to move it. Smaller decks draw their best cards more often.';}
+// Shop rows: data-buy = card:<stock index> | up:<card> | bust | slot. Greyed out when you can't afford it.
+function shopItems(){const o=R.stock.map((id,i)=>{const C=CARDS[id];return{key:'card:'+i,c:C.c,ic:C.cost,t:C.n,d:C.d,p:PRICE.card(id)};});
+  const u=[];if(R.bl<BL_TOP)u.push({key:'bust',c:0x3ef0ff,ic:'B',t:'Buster '+(R.bl+2),d:bustDesc(),p:PRICE.bust(R.bl)});
+  if(R.emax<EMAX_TOP)u.push({key:'slot',c:0x3ef0ff,ic:'E',t:'Energy slot',d:'Store up to '+(R.emax+1)+' energy instead of '+R.emax+'.',p:PRICE.slot(R.emax)});
+  for(const id of Object.keys(CARDS))if(R.lib.includes(id)&&(R.up[id]||0)<2)u.push({key:'up:'+id,c:CARDS[id].c,ic:'+',t:'Upgrade '+cname(id),d:upDesc(id),p:PRICE.up(R.up[id]||0)});
+  return{cards:o,ups:u};}
+function renderShop(){const it=shopItems(),row=x=>'<button class="si'+(x.p>R.gold?' off':'')+'" data-buy="'+x.key+'" style="--c:'+hex(x.c)+'"><i>'+x.ic+'</i><b>'+x.t+'</b><small>'+x.d+'</small><em>'+x.p+' g</em></button>';
+  $('shCards').innerHTML=it.cards.length?it.cards.map(row).join(''):'<p class="hint">Sold out until the next fight.</p>';$('shUps').innerHTML=it.ups.map(row).join('')||'<p class="hint">Everything is maxed.</p>';}
+function buy(key){const all=shopItems(),x=all.cards.concat(all.ups).find(x=>x.key===key);if(!x||x.p>R.gold)return false;R.gold-=x.p;const [k,a]=key.split(':');
+  if(k==='card'){const id=R.stock.splice(+a,1)[0];R.lib.push(id);if(R.deck.length<deckMax())R.deck.push(id);}
+  else if(k==='up')R.up[a]=(R.up[a]||0)+1;else if(k==='bust')R.bl++;else R.emax++;snap('edit');return true;}
 function deckAdd(id){const r=libRest();if(!r.includes(id)||R.deck.length>=deckMax())return false;R.deck.push(id);snap('edit');return true;}
 function deckRemove(id){const i=R.deck.indexOf(id);if(i<0||R.deck.length<=DECK_MIN)return false;R.deck.splice(i,1);snap('edit');return true;}
 function editDone(){if(state!=='edit')return;Snd.play('click');startFight(R.fi);}
@@ -473,8 +507,10 @@ $('tCont').onclick=()=>{Snd.play('click');continueRun();};
 $('tSet').onclick=()=>openSettings('title');
 if(window.ARCADE){$('tArc').hidden=false;$('tArc').onclick=()=>{save();location.href=window.ARCADE.home;};}
 $('rwPicks').onclick=e=>{const b=e.target.closest('button');if(b)pickReward(+b.dataset.i);};
-$('edit').addEventListener('click',e=>{const b=e.target.closest('.ec');if(!b)return;const ok=b.dataset.w==='deck'?deckRemove(b.dataset.id):deckAdd(b.dataset.id);Snd.play(ok?'click':'empty');if(ok)renderEdit();});
+$('edDeckTab').addEventListener('click',e=>{const b=e.target.closest('.ec');if(!b)return;const ok=b.dataset.w==='deck'?deckRemove(b.dataset.id):deckAdd(b.dataset.id);Snd.play(ok?'click':'empty');if(ok)renderEdit();});
 $('edGo').onclick=editDone;
+$('edTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;edTab=b.dataset.tab;Snd.play('click');renderEdit();};
+$('edShopTab').addEventListener('click',e=>{const b=e.target.closest('.si');if(!b)return;const ok=buy(b.dataset.buy);Snd.play(ok?'clear':'empty');if(ok){vibe(15);renderEdit();}});
 $('bPause').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();pause();});
 $('pRes').onclick=resume;
 $('pSet').onclick=()=>openSettings('pause');
@@ -510,8 +546,8 @@ function frame(now){
 resize();goTitle();requestAnimationFrame(t=>{last=t;frame(t);});
 // Test hook. step(dt) runs fixed ticks; auto = (PL, G) => ({dest:[c,r], b: buster held, card: hand index}) replaces player input;
 // god 1 = no damage, 2 = can't die.
-window.__tactics={get S(){return S;},get R(){return R;},G,PL,CARDS,ET,BOSS,FIGHTS,ATK,consts:{TS,FIX,HMAX,EMAX,EREG,CH,BCD,STEP,INV,BUSTER,CHARGED,REST,DECK_MIN,HPG,DMGG},
-  newRun,startFight,continueRun,showReward,pickReward,showEdit,deckAdd,deckRemove,editDone,deckMax,bossOf,useCard,hurtE,goTitle,pause,resume,tick,alive,
+window.__tactics={get S(){return S;},get R(){return R;},G,PL,CARDS,ET,BOSS,FIGHTS,ATK,consts:{TS,FIX,HMAX,EMAX,EMAX_TOP,BL_TOP,GOLD0,PAR_DPS,EREG,CH,BCD,STEP,INV,BUSTER,CHARGED,REST,DECK_MIN,HPG,DMGG},
+  newRun,startFight,continueRun,showReward,pickReward,showEdit,deckAdd,deckRemove,editDone,deckMax,bossOf,buy,shopItems,useCard,hurtE,goTitle,pause,resume,tick,alive,
   step(dt){let n=Math.round(dt/FIX);while(n-->0&&state==='play')tick();},get state(){return state;},set auto(f){auto=f;},get auto(){return auto;},
   set god(v){G.god=v;},get god(){return G.god;},killAll(){for(const e of alive())hurtE(e,999);}};
 })();
