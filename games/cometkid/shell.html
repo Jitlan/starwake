@@ -78,11 +78,14 @@ body.ingame.touch #pad{display:block}
 .pb b{font:900 italic 17px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase}
 .pb small{font:700 8px/1 var(--f-mono);letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
 .pb.on{transform:scale(.94);background:rgba(62,240,255,.25)}
-#bShoot{left:0;top:24%;width:48%;aspect-ratio:1;border-color:rgba(62,240,255,.55)}
-#bShoot b{color:var(--wc)}
-#bJump{right:0;top:50%;width:48%;aspect-ratio:1;border-color:rgba(255,197,49,.55)}
+/* Shoot is the one big right-thumb target (jumping lives on the pad); the weapon switch sits small above it.
+   The optional Jump button (Settings) brings back the two-button layout. */
+#bShoot{left:0;top:19%;width:78%;aspect-ratio:1;border-color:rgba(62,240,255,.55)}
+#bShoot b{color:var(--wc);font-size:22px}
+#bJump{display:none;right:0;top:50%;width:48%;aspect-ratio:1;border-color:rgba(255,197,49,.55)}
 #bJump b{color:var(--gold)}
-#bWep{position:absolute;right:0;top:4%;width:48%;height:19%;min-height:38px;border-radius:14px;border:1px solid var(--line);background:rgba(10,8,30,.7);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 6px;touch-action:none}
+body.jbtn #bJump{display:grid} body.jbtn #bShoot{top:24%;width:48%} body.jbtn #bShoot b{font-size:17px}
+#bWep{position:absolute;right:0;top:0;width:54%;height:16%;min-height:38px;border-radius:14px;border:1px solid var(--line);background:rgba(10,8,30,.7);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 6px;touch-action:none}
 #bWep i{flex:0 0 auto;width:10px;height:10px;border-radius:50%;background:var(--wc);box-shadow:0 0 8px var(--wc)}
 #bWep b{font:800 italic 13px/1 var(--f-display);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #bWep.on{border-color:var(--wc)}
@@ -99,7 +102,8 @@ body.ingame.touch #pad{display:block}
   #dpad{width:min(150px,calc(var(--side) - 22px))}
   .btns{width:min(165px,calc(var(--side) - 14px));height:min(250px,82vh)}
   #bWep{top:2%;width:80%;right:10%}
-  #bShoot{top:30%;width:52%} #bJump{top:56%;width:52%}
+  #bShoot{left:6%;top:31%;width:88%} #bJump{top:56%;width:52%}
+  body.jbtn #bShoot{left:0;top:30%;width:52%}
 }
 
 /* ---------- Screens ---------- */
@@ -179,7 +183,7 @@ body.ingame.touch #pad{display:block}
     <div class="side L" id="padL"><div id="dpad"><i class="u"></i><i class="l"></i><i class="r"></i><i class="d"></i><i class="c"></i></div></div>
     <div class="side R"><div class="btns">
       <button class="pb" id="bShoot" aria-label="Shoot"><b>Shoot</b><small>hold: charge</small></button>
-      <button class="pb" id="bJump" aria-label="Jump"><b>Jump</b><small>↓+jump: drop</small></button>
+      <button class="pb" id="bJump" aria-label="Jump"><b>Jump</b><small>or push up</small></button>
       <button id="bWep" aria-label="Switch weapon"><i></i><b id="bWepN">Buster</b></button>
     </div></div>
   </div>
@@ -195,7 +199,7 @@ body.ingame.touch #pad{display:block}
         <button id="tSet" class="ghost">Settings</button>
         <button id="tArc" class="ghost" hidden>Back to arcade</button>
       </div>
-      <div class="foot"><span id="tHint">Run · Jump · Shoot</span><span>GUARDIANS <b id="tBeat">0 / 4</b></span></div>
+      <div class="foot"><span id="tHint">Space jumps · J shoots</span><span>GUARDIANS <b id="tBeat">0 / 4</b></span></div>
     </div>
   </section>
 
@@ -233,7 +237,11 @@ body.ingame.touch #pad{display:block}
       <div class="opt"><span>Sound effects</span><button class="tog" data-set="sfx" aria-label="Sound effects"></button></div>
       <div class="opt"><span>Music</span><button class="tog" data-set="music" aria-label="Music"></button></div>
       <div class="opt"><span>Vibration</span><button class="tog" data-set="vibe" aria-label="Vibration"></button></div>
-      <p class="hint">Keys: arrows or WASD move, Space/K/Z jump, J/X shoot (hold to charge), Q/E or Shift switch weapon, Esc pause.</p>
+      <div class="opt"><span>Auto-fire</span><button class="tog" data-set="rapid" aria-label="Auto-fire"></button></div>
+      <p class="hint">Holding Shoot keeps firing; let go to release a charged shot.</p>
+      <div class="opt"><span>Jump button</span><button class="tog" data-set="jbtn" aria-label="Jump button"></button></div>
+      <p class="hint">Touch: push the pad up (or up-left, up-right) to jump, longer for higher. Hold down on a ledge to drop through. Hold Shoot to charge.</p>
+      <p class="hint">Keys: arrows or WASD move, Up/Space/K/Z jump, J/X shoot (hold to charge), hold Down on a ledge to drop, Q/E or Shift switch weapon, Esc pause.</p>
       <button id="setReset" class="danger">Reset all progress</button>
       <button id="setClose" class="primary">Done</button>
     </div>

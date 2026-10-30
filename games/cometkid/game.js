@@ -12,7 +12,7 @@ const {P,geo,makeMat}=ARC;
 
 /* ===== SAVE */
 const KEY='cometkid.save.v1';
-function fresh(){return{v:1,beat:[0,0,0,0,0],best:[0,0,0,0,0],set:{sfx:true,music:true,vibe:true},stats:{deaths:0,clears:0}};}
+function fresh(){return{v:1,beat:[0,0,0,0,0],best:[0,0,0,0,0],set:{sfx:true,music:true,vibe:true,jbtn:false,rapid:false},stats:{deaths:0,clears:0}};}
 function merge(a,b){for(const k in b){const v=b[k];
   if(v&&typeof v==='object'&&!Array.isArray(v)&&a[k]&&typeof a[k]==='object'&&!Array.isArray(a[k]))merge(a[k],v);
   else if(k in a&&typeof v===typeof a[k]&&Array.isArray(v)===Array.isArray(a[k]))a[k]=v;}return a;}
@@ -108,7 +108,7 @@ const BOSS={mantis:{hp:28,sc:.62,r:1},warden:{hp:28,sc:.55,r:1.05},bastion:{hp:2
 
 /* ===== PHYSICS TUNING (tiles, seconds) */
 // Full jump rises JUMP^2/(2*GRAV) = 3.15 tiles and covers ~4.9 tiles of ground at RUN speed; letting go of jump cuts the rise.
-const FIX=1/60,RUN=5.5,JUMP=14.2,GRAV=32,FALL=15,CUT=3,PW=.36,PH=1.35,COYOTE=.08,BUFFER=.1;
+const FIX=1/60,RUN=5.5,JUMP=14.2,GRAV=32,FALL=15,CUT=3,PW=.36,PH=1.35,COYOTE=.08,BUFFER=.1,DROP_T=.3,RAPID=.18;
 const PER=5,PERT=300;          // every moving platform loops in 5 s (300 ticks)
 const CRUMBLE=.6,VIEW_H=12,CH1=.45,CH2=1.15,KB=.32,INV=1.3;
 
@@ -327,9 +327,9 @@ function burst(x,y,c){for(const sp of [3,6])for(let i=0;i<8;i++){const a=i*TAU/8
 
 /* ===== RUN STATE */
 let state='title';
-const PL={x:0,y:0,vx:0,vy:0,hw:PW,h:PH,gr:0,on:null,drop:0,face:1,coy:0,buf:0,jh:0,kb:0,inv:0,hp:HMAX,dead:0,deadT:0,w:0,we:[0,EMAX,EMAX,EMAX,EMAX],chg:0,charging:0,shootT:0,anim:0,lvy:0,vis:1};
+const PL={x:0,y:0,vx:0,vy:0,hw:PW,h:PH,gr:0,on:null,drop:0,dn:0,face:1,coy:0,buf:0,jh:0,kb:0,inv:0,hp:HMAX,dead:0,deadT:0,w:0,we:[0,EMAX,EMAX,EMAX,EMAX],chg:0,charging:0,shootT:0,anim:0,lvy:0,vis:1};
 const owned=w=>w===0||!!S.beat[w-1];
-function resetBody(b,x,y){Object.assign(b,{x,y,vx:0,vy:0,gr:0,on:null,drop:0,coy:0,buf:0,jh:0,kb:0});}
+function resetBody(b,x,y){Object.assign(b,{x,y,vx:0,vy:0,gr:0,on:null,drop:0,dn:0,coy:0,buf:0,jh:0,kb:0});}
 
 function startStage(i){
   state='play';hideScreens();parse(i);buildMeshes();
@@ -371,7 +371,8 @@ function readInput(){
   else h={l:!!(keys.l||touch.l),r:!!(keys.r||touch.r),d:!!(keys.d||touch.d),jump:!!(keys.jump||touch.jump||touch.u),shoot:!!(keys.shoot||touch.shoot)};
   h.jp=(h.jump&&!prev.jump)||!!latch.jump;h.sp=(h.shoot&&!prev.shoot)||!!latch.shoot;h.sr=!h.shoot&&(prev.shoot||!!latch.shoot);h.sw=latch.sw;
   if(latch.shoot&&!h.shoot)h.sr=1;prev.jump=h.jump;prev.shoot=h.shoot;latch.jump=latch.shoot=latch.sw=0;return h;}
-// Touch pad: each pointer drives one control, so run + jump + shoot work together. The whole left half is the d-pad.
+// Touch pad: each pointer drives one control, so run + jump + shoot work together. The whole left half is the d-pad;
+// the right side is Shoot (plus the optional Jump button).
 const ptr=new Map(),padPts=new Map();
 // 8-way: the thumb's angle from the pad centre picks one of eight 45-degree sectors. Up and the upper diagonals jump
 // (held, so a long press still jumps higher); diagonals light both arrows they combine.
@@ -392,7 +393,7 @@ window.addEventListener('pointerup',endPtr);window.addEventListener('pointercanc
 function clearInput(){ptr.clear();padPts.clear();for(const k in touch)touch[k]=0;for(const k in keys)keys[k]=0;prev.jump=prev.shoot=0;latch.jump=latch.shoot=latch.sw=0;
   for(const el of document.querySelectorAll('#pad .on'))el.classList.remove('on');}
 if(matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0)document.body.classList.add('touch');
-window.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&!document.body.classList.contains('touch')){document.body.classList.add('touch');resize();}},true);
+window.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&!document.body.classList.contains('touch')){document.body.classList.add('touch');applyPad();resize();}},true);
 
 /* ===== BODY PHYSICS (shared by the hero, mites and the level checker) */
 function moveX(b,dx){if(!dx)return 0;b.x+=dx;const y0=Math.floor(b.y+.001),y1=Math.floor(b.y+b.h-.001);
@@ -440,7 +441,11 @@ function tick(inp){
     phys(PL,{},dt);}
   else if(ph==='run'||ph==='boss'||ph==='won'){
     if(PL.dead){PL.deadT+=dt;if(PL.deadT>2.2)respawn(false);}
-    else{const jumpedBefore=PL.gr;phys(PL,ph==='won'&&G.pt>2?{}:inp,dt);
+    else{const jumpedBefore=PL.gr;
+      // Holding straight Down on a one-way ledge drops through, so it works one-thumbed. A thumb drifting low while
+      // running reads as a down-diagonal (l/r set), which never counts. Down + jump still drops at once.
+      PL.dn=ph!=='won'&&inp.d&&!inp.l&&!inp.r&&PL.gr&&onOneway(PL)?PL.dn+dt:0;if(PL.dn>=DROP_T){PL.dn=0;PL.drop=.22;}
+      phys(PL,ph==='won'&&G.pt>2?{}:inp,dt);
       if(PL.jumped){PL.jumped=0;Snd.play('jump');}
       if(PL.gr&&!jumpedBefore&&PL.lvy<-7)Snd.play('land');
       if(ph!=='won')weapons(inp,dt);}
@@ -491,6 +496,8 @@ function updWeapUI(){const w=WEAP[PL.w];document.documentElement.style.setProper
 function weapons(inp,dt){const p=PL;
   if(p.kb>0){if(inp.sp&&p.w===0)p.charging=1;return;}
   if(inp.sp){fire(0);if(p.w===0){p.charging=1;p.chg=0;}}
+  // Auto-fire setting: holding Shoot keeps the buster going while the charge still builds for release.
+  else if(S.set.rapid&&p.w===0&&inp.shoot&&p.shootT<=.3-RAPID)fire(0);
   if(p.w===0&&p.charging){if(inp.shoot||inp.sp){const c0=p.chg;p.chg+=dt;if(p.chg>.2&&Math.floor(p.chg*10)!==Math.floor(c0*10))Snd.play('chg',Math.min(1,p.chg/CH2));}
     if(inp.sr){if(p.chg>=CH2)fire(2);else if(p.chg>=CH1)fire(1);p.chg=0;p.charging=0;}}}
 function fire(lvl){const p=PL,w=p.w,f=p.face,x=p.x+f*.66,y=p.y+.74;
@@ -783,6 +790,8 @@ function pause(){if(state!=='play')return;state='paused';clearInput();hideScreen
 function resume(){if(state!=='paused')return;hideScreens();state='play';clearInput();Snd.resume();last=performance.now();acc=0;requestWake();}
 let settingsFrom='title',confirmReset=false;
 function openSettings(from){settingsFrom=from;$(from).hidden=true;$('settings').hidden=false;confirmReset=false;renderSettings();}
+function applyPad(){document.body.classList.toggle('jbtn',!!S.set.jbtn);
+  $('tHint').textContent=document.body.classList.contains('touch')?'Push up to jump · hold ↓ to drop':'Space jumps · J shoots';}
 function renderSettings(){for(const t of document.querySelectorAll('#settings .tog'))t.classList.toggle('on',!!S.set[t.dataset.set]);$('setReset').textContent=confirmReset?'Tap again to erase everything':'Reset all progress';}
 // Guardian portraits for the stage select, rendered once into a small target and read back.
 let thumbCache=null;
@@ -816,7 +825,7 @@ $('rMain').onclick=e=>act(e.target.dataset.act);$('rAlt').onclick=e=>act(e.targe
 function act(a){if(a==='retry')startStage(G.i);else if(a==='title')goTitle();else goSelect();}
 $('setClose').onclick=()=>{$('settings').hidden=true;$(settingsFrom).hidden=false;};
 $('settings').addEventListener('click',e=>{
-  const t=e.target.closest('.tog');if(t){const k=t.dataset.set;S.set[k]=!S.set[k];Snd.apply();if(k==='vibe'&&S.set.vibe)vibe(30);if(k==='music'&&!S.set.music)Mus.stop();else if(k==='music'&&Mus.want)Mus.play(Mus.want[0],Mus.want[1]);save();renderSettings();return;}
+  const t=e.target.closest('.tog');if(t){const k=t.dataset.set;S.set[k]=!S.set[k];Snd.apply();if(k==='vibe'&&S.set.vibe)vibe(30);if(k==='jbtn')applyPad();if(k==='music'&&!S.set.music)Mus.stop();else if(k==='music'&&Mus.want)Mus.play(Mus.want[0],Mus.want[1]);save();renderSettings();return;}
   if(e.target.id==='setReset'){if(!confirmReset){confirmReset=true;renderSettings();return;}const keep=S.set;S=fresh();S.set=keep;save();confirmReset=false;PL.w=0;$('settings').hidden=true;goTitle();}});
 document.addEventListener('touchmove',e=>{if(!e.target.closest||!e.target.closest('.scroll'))e.preventDefault();},{passive:false});
 for(const ev of ['gesturestart','gesturechange','dblclick','contextmenu'])document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
@@ -840,7 +849,7 @@ function frame(now){
 }
 
 /* ===== BOOT */
-resize();goTitle();requestAnimationFrame(t=>{last=t;frame(t);});
+applyPad();resize();goTitle();requestAnimationFrame(t=>{last=t;frame(t);});
 // Test hook. step(dt) runs fixed ticks; auto = (hero, G) => ({l, r, d, jump, shoot, sw}) replaces player input; god 1 = no damage, 2 = nothing kills.
 window.__comet={get S(){return S;},G,PL,STAGES,WEAP,ET,BOSS,ROWS,FIX,PERT,consts:{RUN,JUMP,GRAV,CUT,PW,PH,COYOTE,CRUMBLE},startStage,respawn,tick,
   step(dt){let n=Math.round(dt/FIX);while(n-->0&&state==='play')tick();},get state(){return state;},set auto(f){auto=f;},get auto(){return auto;},

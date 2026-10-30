@@ -56,13 +56,16 @@ Match the existing dense style: compact single-letter locals, short one-line fun
 ## Rusty & Buckets notes
 - World is y-up (XZ ground). In battle the camera sits behind the duo: Rusty is lane 0 (left), Buckets lane 1 (right), and their panels double as the timing buttons; tapping either half of the field counts too.
 - A battle is one generator (`battleLoop`) that yields seconds, `{prompts}` (timing taps; each prompt's callback fires the moment it resolves) or `{input:'cmd'}`. Hero attacks, team moves and alien attacks are small generators built on that.
+- Foe nameplates are placed through the `--t` CSS variable, never an inline `transform`: the target-pick pulse animates `var(--t) scale(…)`. `placeFoeLabels` spreads plates apart when they would overlap (landscape, small phones).
 - Kit aliens are shown the Starwake way (flat to the camera, pointing at the duo); bosses come straight from `ARC.BOSSES`.
 - Puzzles: `PUZ` holds lights, wires, crates (levels in `CRATES`, verified solvable with a BFS), simon, and the gyro four (slide, maze, wind, signal) that read `tilt()` (motion, or a drag stick).
 - Balance check: set `__rb.auto = p => ({hit, err})` and `__rb.autoCmd = hero => command`, then run every stage with `tickBattle(1/30)`. Reference: 85% timing breezes, 50-60% finishes with retries on the last bosses, 40% stalls at the third boss.
 
 ## Comet Kid notes
 - Stages are string tile maps. Every jump must be makeable: re-run the stage reachability search (a BFS over landing spots using the game's own `phys`) after editing a map; widening a gap past the jump reach should make it fail.
-- Controls are pointer-tracked per finger (d-pad area plus Jump/Shoot/Weapon buttons that act on pointerdown), so run + jump + shoot work together. Test with CDP `Input.dispatchTouchEvent` using several touch points.
+- Controls are pointer-tracked per finger, so run + jump + shoot work together. Left thumb: the d-pad (the whole left half) reads the thumb's angle from its centre as eight 45° sectors with a small dead zone; up and the upper diagonals set `touch.u`, which is the held jump input (hold time still sets jump height), and a fresh up latches a jump. Right thumb: one big Shoot button (hold to charge) and the small weapon switch. The Jump button is an opt-in setting (`S.set.jbtn`, body class `jbtn`). `S.set.rapid` is opt-in auto-fire (buster only, charge still builds).
+- Drop-through: hold straight Down (no left/right) for `DROP_T` (0.3 s) on a one-way ledge or platform. Down-diagonals never count, so a thumb drifting low while running can't drop you. Down + jump still drops at once (keyboard, Jump button).
+- Test touch with CDP `Input.dispatchTouchEvent`, with touch points at angles around `#dpad`'s centre plus one on `#bShoot`. Wrapping `requestAnimationFrame` to pause the loop, then calling `__comet.tick()`, makes hold timings exact. For a scripted stage pass, drive `__comet.touch`/`latch` (the pad's own state) from a bot that plans by simulating candidate inputs with `phys` (call `setPlats(G.tick+k)` per simulated step, then restore). Plans must be able to stop partway, or the bot stalls before ledges over spikes.
 - Kit candidates if a second platformer appears: tile collision and movement, the multi-touch pad, and the boss-portrait renderer.
 
 ## Workflow

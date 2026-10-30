@@ -617,8 +617,14 @@ function draw(dt,now){
 /* ================================================================ BATTLE HUD */
 function buildFoeLabels(){$('foes').innerHTML=B.foes.map((f,i)=>'<button class="foe'+(f.boss?' boss':'')+'" data-i="'+i+'"><b>'+f.name+'</b><span><i></i></span></button>').join('');updateFoeLabels();}
 function updateFoeLabels(){[...$('foes').children].forEach((el,i)=>{const f=B.foes[i];if(!f)return;el.querySelector('i').style.transform='scaleX('+(f.hp/f.max).toFixed(3)+')';el.classList.toggle('dead',f.dead);});}
-function placeFoeLabels(){[...$('foes').children].forEach((el,i)=>{const f=B.foes[i];if(!f)return;const s=toScreen(f.x,f.y+(f.boss?2.3:1.05),f.z);
-  el.style.transform='translate('+Math.round(clamp(s.x,60,W-60))+'px,'+Math.round(Math.max(110,s.y))+'px) translate(-50%,-100%)';});}
+// Plates follow their aliens; when they would overlap (landscape, small phones) they spread apart in screen order,
+// centred on the group, so each one stays a clean tap target.
+function placeFoeLabels(){const ps=[];[...$('foes').children].forEach((el,i)=>{const f=B.foes[i];if(!f)return;const s=toScreen(f.x,f.y+(f.boss?2.3:1.05),f.z);
+    ps.push({el,x:s.x,x0:s.x,y:Math.max(110,s.y),w:el.offsetWidth+8});});
+  if(!ps.length)return;ps.sort((a,b)=>a.x-b.x);for(let k=1;k<ps.length;k++)ps[k].x=Math.max(ps[k].x,ps[k-1].x+(ps[k-1].w+ps[k].w)/2);
+  let d=ps.reduce((a,p)=>a+p.x0-p.x,0)/ps.length;const lo=ps[0].x+d-ps[0].w/2,hi=ps[ps.length-1].x+d+ps[ps.length-1].w/2;
+  if(lo<8)d+=8-lo;else if(hi>W-8)d-=hi-W+8;
+  for(const p of ps)p.el.style.setProperty('--t','translate('+Math.round(p.x+d)+'px,'+Math.round(p.y)+'px) translate(-50%,-100%)');}
 function renderPanels(){B.heroes.forEach((h,i)=>{const el=$('lane'+i);el.querySelector('.lv').textContent='Lv '+h.lvl;el.querySelector('.hp b').textContent=Math.ceil(h.hp)+' / '+h.maxHp;
     el.querySelector('.hp i').style.transform='scaleX('+(h.hp/h.maxHp).toFixed(3)+')';el.classList.toggle('down',h.down);el.classList.toggle('act',B.active===h);});
   $('tpN').textContent=B.tp+' / '+B.tpMax;$('tpBar').style.transform='scaleX('+(B.tp/B.tpMax).toFixed(3)+')';}
