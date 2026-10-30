@@ -65,11 +65,14 @@ body.ingame.touch #pad{display:block}
 #dpad .l{left:4%;top:34%;width:36%;height:32%} #dpad .l::before{border-right:13px solid var(--dim);margin-right:12px}
 #dpad .r{right:4%;top:34%;width:36%;height:32%} #dpad .r::before{border-left:13px solid var(--dim);margin-left:12px}
 #dpad .d{left:34%;bottom:4%;width:32%;height:36%} #dpad .d::before{border-top:13px solid var(--dim);margin-top:12px}
+#dpad .u{left:34%;top:4%;width:32%;height:36%} #dpad .u::before{border-bottom:13px solid var(--dim);margin-bottom:12px}
 #dpad .c{left:34%;top:34%;width:32%;height:32%;border-radius:50%;background:rgba(7,6,26,.6)}
 #dpad i.on{background:rgba(62,240,255,.28);border-color:var(--player)}
-#dpad i.on::before{border-left-color:var(--player);border-right-color:var(--player);border-top-color:var(--player)}
+#dpad i.on::before{border-left-color:var(--player);border-right-color:var(--player);border-top-color:var(--player);border-bottom-color:var(--player)}
 #dpad .l.on::before{border-left-color:transparent} #dpad .r.on::before{border-right-color:transparent}
-#dpad .d.on::before{border-left-color:transparent;border-right-color:transparent}
+#dpad .d.on::before{border-left-color:transparent;border-right-color:transparent;border-bottom-color:transparent}
+#dpad .u.on::before{border-left-color:transparent;border-right-color:transparent;border-top-color:transparent}
+#dpad .l.on::before,#dpad .r.on::before{border-top-color:transparent;border-bottom-color:transparent}
 .btns{position:relative;width:min(232px,54vw);height:min(248px,58vw)}
 .pb{position:absolute;display:grid;place-items:center;align-content:center;gap:2px;border-radius:50%;border:2px solid var(--line);background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.12),rgba(255,255,255,.03));padding:0;touch-action:none}
 .pb b{font:900 italic 17px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase}
@@ -173,7 +176,7 @@ body.ingame.touch #pad{display:block}
   </div>
 
   <div id="pad">
-    <div class="side L" id="padL"><div id="dpad"><i class="l"></i><i class="r"></i><i class="d"></i><i class="c"></i></div></div>
+    <div class="side L" id="padL"><div id="dpad"><i class="u"></i><i class="l"></i><i class="r"></i><i class="d"></i><i class="c"></i></div></div>
     <div class="side R"><div class="btns">
       <button class="pb" id="bShoot" aria-label="Shoot"><b>Shoot</b><small>hold: charge</small></button>
       <button class="pb" id="bJump" aria-label="Jump"><b>Jump</b><small>↓+jump: drop</small></button>

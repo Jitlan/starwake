@@ -357,7 +357,7 @@ const ey=e=>e.c==='m'?e.y+.31:e.y;
 /* ===== INPUT */
 // Keys, touch and the test hook are merged into one held state that the simulation samples each tick.
 // Presses are latched so a tap shorter than a frame still registers.
-const keys={},touch={l:0,r:0,d:0,jump:0,shoot:0},latch={jump:0,shoot:0,sw:0};
+const keys={},touch={l:0,r:0,d:0,u:0,jump:0,shoot:0},latch={jump:0,shoot:0,sw:0};
 let auto=null;
 const KMAP={ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r',ArrowDown:'d',KeyS:'d',ArrowUp:'jump',KeyW:'jump',Space:'jump',KeyK:'jump',KeyZ:'jump',KeyJ:'shoot',KeyX:'shoot'};
 window.addEventListener('keydown',e=>{const k=KMAP[e.code];if(k||e.code==='Space')e.preventDefault();
@@ -368,14 +368,18 @@ window.addEventListener('keyup',e=>{const k=KMAP[e.code];if(k)keys[k]=0;});
 const prev={jump:0,shoot:0};
 function readInput(){
   let h;if(auto){const a=auto(PL,G)||{};h={l:!!a.l,r:!!a.r,d:!!a.d,jump:!!a.jump,shoot:!!a.shoot};if(a.sw)latch.sw=a.sw;}
-  else h={l:!!(keys.l||touch.l),r:!!(keys.r||touch.r),d:!!(keys.d||touch.d),jump:!!(keys.jump||touch.jump),shoot:!!(keys.shoot||touch.shoot)};
+  else h={l:!!(keys.l||touch.l),r:!!(keys.r||touch.r),d:!!(keys.d||touch.d),jump:!!(keys.jump||touch.jump||touch.u),shoot:!!(keys.shoot||touch.shoot)};
   h.jp=(h.jump&&!prev.jump)||!!latch.jump;h.sp=(h.shoot&&!prev.shoot)||!!latch.shoot;h.sr=!h.shoot&&(prev.shoot||!!latch.shoot);h.sw=latch.sw;
   if(latch.shoot&&!h.shoot)h.sr=1;prev.jump=h.jump;prev.shoot=h.shoot;latch.jump=latch.shoot=latch.sw=0;return h;}
 // Touch pad: each pointer drives one control, so run + jump + shoot work together. The whole left half is the d-pad.
 const ptr=new Map(),padPts=new Map();
-function padDir(){let l=0,r=0,d=0;const b=$('dpad').getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2,dz=b.width*.09;
-  for(const [,p] of padPts){const dx=p.x-cx,dy=p.y-cy;if(dy>b.width*.18&&dy>Math.abs(dx)*1.1)d=1;else if(dx<-dz)l=1;else if(dx>dz)r=1;}
-  touch.l=l;touch.r=r;touch.d=d;for(const [c,v] of [['l',l],['r',r],['d',d]])$('dpad').querySelector('.'+c).classList.toggle('on',!!v);}
+// 8-way: the thumb's angle from the pad centre picks one of eight 45-degree sectors. Up and the upper diagonals jump
+// (held, so a long press still jumps higher); diagonals light both arrows they combine.
+function padDir(){let l=0,r=0,d=0,u=0;const b=$('dpad').getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2,dz=b.width*.11;
+  for(const [,p] of padPts){const dx=p.x-cx,dy=p.y-cy;if(Math.hypot(dx,dy)<dz)continue;const k=((Math.round(Math.atan2(dy,dx)/(Math.PI/4))%8)+8)%8;
+    if(k===7||k===0||k===1)r=1;if(k>=3&&k<=5)l=1;if(k>=1&&k<=3)d=1;if(k>=5&&k<=7)u=1;}
+  if(u&&!touch.u)latch.jump=1;
+  touch.l=l;touch.r=r;touch.d=d;touch.u=u;for(const [c,v] of [['l',l],['r',r],['d',d],['u',u]])$('dpad').querySelector('.'+c).classList.toggle('on',!!v);}
 $('padL').addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}ptr.set(e.pointerId,'pad');padPts.set(e.pointerId,{x:e.clientX,y:e.clientY});padDir();});
 $('padL').addEventListener('pointermove',e=>{if(padPts.has(e.pointerId)){padPts.set(e.pointerId,{x:e.clientX,y:e.clientY});padDir();}});
 for(const [id,k] of [['bJump','jump'],['bShoot','shoot']])$(id).addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();Snd.init();try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
