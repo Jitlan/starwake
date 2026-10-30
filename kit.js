@@ -106,6 +106,21 @@ const BOSSES={
   return{group:g,anim(t,b,dt){r1.rotation.x=Math.sin(t*.7)*.6;r1.rotation.y=Math.cos(t*.5)*.4;r2.rotation.x=Math.cos(t*.6)*.7;r2.rotation.y=-Math.sin(t*.8)*.5;
     sat.rotation.z+=dt*(.5+b.ph*.3);core.scale.setScalar(1+Math.sin(t*7)*.1);core.rotation.z+=dt;}};},
 };
+// Comet Kid, modelled facing +x, feet at the origin. Returns the parts the games animate: body, legs, arm (rotation.z aims;
+// 0 = forward), back arm, and the base/accent materials (acc is the suit color, swapped per weapon).
+function kid(){
+  const g=new T.Group(),base=makeMat(false),acc=makeMat(false),mk=(pp,m)=>new T.Mesh(geo(pp),m);
+  const body=new T.Group();g.add(body);
+  body.add(mk([{g:P.ico(.34,1),c:0xe8eefc,p:[0,1.02,0]},{g:P.box(.1,.19,.44),c:0x3ef0ff,e:1,p:[.27,1.0,0]},
+    {g:P.box(.44,.08,.38),c:0x2a3050,p:[0,.43,0]},{g:P.box(.18,.3,.3),c:0xc8d0ea,p:[-.28,.66,0]},
+    {g:P.cone(.07,.12,6),c:0xff9b3d,e:1,p:[-.3,.46,.08],r:[PI,0,0]},{g:P.cone(.07,.12,6),c:0xff9b3d,e:1,p:[-.3,.46,-.08],r:[PI,0,0]},
+    {g:P.box(.04,.22,.04),c:0x8a92c8,p:[-.08,1.42,0]},{g:P.oct(.075),c:0xffc531,e:1,p:[-.08,1.56,0]},{g:P.oct(.06),c:0x3ef0ff,e:1,p:[.21,.66,0]}],base));
+  body.add(mk([{g:P.box(.4,.34,.34),c:0xffffff,p:[0,.62,0]},{g:P.box(.2,.09,.2),c:0xffffff,p:[-.02,1.35,0]},{g:P.box(.16,.16,.46),c:0xffffff,p:[-.06,1.0,0]}],acc));
+  const legs=[.11,-.11].map(z=>{const l=new T.Group();l.position.set(0,.42,z);l.add(mk([{g:P.box(.15,.3,.15),c:0xd8deef,p:[0,-.15,0]}],base),mk([{g:P.box(.24,.14,.2),c:0xffffff,p:[.04,-.34,0]}],acc));body.add(l);return l;});
+  const arm=new T.Group();arm.position.set(.02,.7,.25);arm.add(mk([{g:P.cyl(.11,.13,.44,8),c:0xffffff,p:[.2,0,0],r:[0,0,-PI/2]}],acc),mk([{g:P.tor(.1,.03,4,10),c:0x3ef0ff,e:1,p:[.43,0,0],r:[0,PI/2,0]},{g:P.box(.12,.12,.12),c:0xd8deef}],base));body.add(arm);
+  const back=new T.Group();back.position.set(.02,.7,-.25);back.add(mk([{g:P.box(.12,.32,.12),c:0xd8deef,p:[0,-.14,0]}],base));body.add(back);
+  return{g,body,legs,arm,back,base,acc};
+}
 const disposeGroup=g=>g.traverse(o=>{if(o.geometry)o.geometry.dispose();});
 
 /* ================================================================ GLOW BATCHES (instanced quads, rebuilt every frame) */
@@ -194,7 +209,13 @@ function music(snd,o){return{on:false,mode:'',step:0,next:0,bpm:128,key:45,prog:
       if(s===4||s===12)snd.nz(t,.12,.2,'bandpass',1800,0,D,1);if(s%2===1)snd.nz(t,.035,.07,'highpass',7000,0,D);}
     else if(s===0)snd.osc('sine',110,40,t,.3,.22,D);}
 };}
-function vibe(on,ms){if(!on||!navigator.vibrate)return;try{navigator.vibrate(ms);}catch(e){}}
+// Haptics. Android (and most non-Apple browsers) have the Vibration API. iPhone Safari doesn't, but since iOS 18 toggling a
+// switch-style checkbox ticks the Taptic Engine, so on touch devices without vibrate() a hidden one is clicked once per pulse.
+// That is an undocumented side effect: it may only fire during a tap, and a Safari update could remove it.
+function tick(){try{const l=document.createElement('label'),i=document.createElement('input');i.type='checkbox';i.setAttribute('switch','');
+  l.setAttribute('aria-hidden','true');l.style.display='none';l.appendChild(i);document.head.appendChild(l);l.click();l.remove();}catch(e){}}
+function vibe(on,ms){if(!on)return;if(navigator.vibrate){try{navigator.vibrate(ms);}catch(e){}return;}if(!(navigator.maxTouchPoints>0))return;
+  const p=Array.isArray(ms)?ms:[ms];let t=0;for(let k=0;k<p.length;k+=2){if(t)setTimeout(tick,t);else tick();t+=p[k]+(p[k+1]||0);}}
 
 /* ================================================================ MOTION (phone tilt) */
 /* motion.read() = left-right tilt in radians (read2() adds forward/back) relative to calibrate(), positive = right side down. It works however the phone
@@ -216,5 +237,5 @@ const motion={ok:false,on:false,denied:false,raw:0,zero:0,pitch:0,zp:0,last:0,
   // Two axes for top-down tilt games: x = right side down, y = top edge tipped away (a ball would roll up the screen). Radians.
   read2(){return{x:this.raw-this.zero,y:-(this.pitch-this.zp)};}};
 
-return{P,M,geo,makeMat,ALIENS,BOSSES,disposeGroup,Batch,VS_PLANE,VS_ISO,FX_FS,EB_FS,synth,music,mtof,vibe,motion};
+return{P,M,geo,makeMat,ALIENS,BOSSES,disposeGroup,Batch,VS_PLANE,VS_ISO,FX_FS,EB_FS,synth,music,mtof,vibe,motion,kid};
 })();
