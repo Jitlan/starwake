@@ -128,20 +128,7 @@ const cam={x:0,y:6,h:VIEW_H,hw:5,hh:5.5,lead:0,snap:1};
 
 /* ===== MODELS */
 const MAT=makeMat(false),MAT_I=makeMat(true),MAT_2=makeMat(false,{side:T.DoubleSide});
-function buildKid(){
-  const g=new T.Group(),base=makeMat(false),acc=makeMat(false),mk=(pp,m)=>new T.Mesh(geo(pp),m);
-  const body=new T.Group();g.add(body);
-  body.add(mk([{g:P.ico(.34,1),c:0xe8eefc,p:[0,1.02,0]},{g:P.box(.1,.19,.44),c:0x3ef0ff,e:1,p:[.27,1.0,0]},
-    {g:P.box(.44,.08,.38),c:0x2a3050,p:[0,.43,0]},{g:P.box(.18,.3,.3),c:0xc8d0ea,p:[-.28,.66,0]},
-    {g:P.cone(.07,.12,6),c:0xff9b3d,e:1,p:[-.3,.46,.08],r:[PI,0,0]},{g:P.cone(.07,.12,6),c:0xff9b3d,e:1,p:[-.3,.46,-.08],r:[PI,0,0]},
-    {g:P.box(.04,.22,.04),c:0x8a92c8,p:[-.08,1.42,0]},{g:P.oct(.075),c:0xffc531,e:1,p:[-.08,1.56,0]},{g:P.oct(.06),c:0x3ef0ff,e:1,p:[.21,.66,0]}],base));
-  body.add(mk([{g:P.box(.4,.34,.34),c:0xffffff,p:[0,.62,0]},{g:P.box(.2,.09,.2),c:0xffffff,p:[-.02,1.35,0]},{g:P.box(.16,.16,.46),c:0xffffff,p:[-.06,1.0,0]}],acc));
-  const legs=[.11,-.11].map(z=>{const l=new T.Group();l.position.set(0,.42,z);l.add(mk([{g:P.box(.15,.3,.15),c:0xd8deef,p:[0,-.15,0]}],base),mk([{g:P.box(.24,.14,.2),c:0xffffff,p:[.04,-.34,0]}],acc));body.add(l);return l;});
-  const arm=new T.Group();arm.position.set(.02,.7,.25);arm.add(mk([{g:P.cyl(.11,.13,.44,8),c:0xffffff,p:[.2,0,0],r:[0,0,-PI/2]}],acc),mk([{g:P.tor(.1,.03,4,10),c:0x3ef0ff,e:1,p:[.43,0,0],r:[0,PI/2,0]},{g:P.box(.12,.12,.12),c:0xd8deef}],base));body.add(arm);
-  const back=new T.Group();back.position.set(.02,.7,-.25);back.add(mk([{g:P.box(.12,.32,.12),c:0xd8deef,p:[0,-.14,0]}],base));body.add(back);
-  return{g,body,legs,arm,back,base,acc};
-}
-const KID=buildKid();scene.add(KID.g);
+const KID=ARC.kid();scene.add(KID.g);
 // one instanced mesh per alien model (aFlash = per-instance hit flash)
 const EM={};for(const c in ET){const k=ET[c].k;if(EM[k])continue;const g=ARC.ALIENS[k]();g.setAttribute('aFlash',new T.InstancedBufferAttribute(new Float32Array(32),1).setUsage(T.DynamicDrawUsage));
   const m=new T.InstancedMesh(g,MAT_I,32);m.instanceMatrix.setUsage(T.DynamicDrawUsage);m.count=0;m.frustumCulled=false;scene.add(m);EM[k]=m;}

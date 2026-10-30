@@ -106,6 +106,28 @@ const DRAW={
    g.fillStyle='#07061a';g.fillRect(256,172,12,26);g.fillRect(282,172,12,26);
    g.fillStyle='#ffc531';g.beginPath();g.arc(213,92,13,0,7);g.fill();rect(214,282,22,22,'#3ef0ff');
  }`,
+ 'cometkid-tactics':`(g)=>{
+   const bg=g.createRadialGradient(256,140,20,256,256,380);bg.addColorStop(0,'#2a1650');bg.addColorStop(1,'#07061a');g.fillStyle=bg;g.fillRect(0,0,512,512);
+   let seed=21;const r=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+   for(let i=0;i<40;i++){g.globalAlpha=.25+r()*.6;g.fillStyle='#cfd8ff';const z=r()*2.4+.6;g.fillRect(r()*512,r()*200,z,z);}g.globalAlpha=1;
+   // the 6x3 field in perspective: blue tiles for Comet Kid, pink for the aliens, one tile lit red
+   const P=(c,r)=>{const y=210+r*82+r*r*6,w=62+r*10,x0=256-3*w;return[x0+c*w,y,w];};
+   for(let rr=0;rr<3;rr++)for(let c=0;c<6;c++){const [x,y,w]=P(c,rr),[x2,y2,w2]=P(c,rr+1);
+     g.fillStyle=c<3?(c===1&&rr===2?'#ff3d5a':'#1c3260'):'#4a1a40';g.strokeStyle=c<3?'#3ef0ff':'#ff3d7f';g.lineWidth=3;
+     g.beginPath();g.moveTo(x+4,y+4);g.lineTo(x+w-4,y+4);g.lineTo(x2+w2-4,y2-4);g.lineTo(x2+4,y2-4);g.closePath();g.fill();g.stroke();}
+   g.fillStyle='#ffc531';g.fillRect(253,206,6,262);
+   // Comet Kid's helmet and visor on the left, an alien dart on the right, a charged shot between them
+   g.fillStyle='#ff3d7f';g.beginPath();g.arc(176,262,58,0,7);g.fill();
+   g.fillStyle='#e8eefc';g.beginPath();g.arc(166,254,58,0,7);g.fill();
+   g.fillStyle='#3ef0ff';g.beginPath();g.moveTo(170,232);g.lineTo(226,232);g.lineTo(220,272);g.lineTo(170,272);g.closePath();g.fill();
+   g.fillStyle='#07061a';g.fillRect(186,240,9,22);g.fillRect(206,240,9,22);g.fillStyle='#ffc531';g.beginPath();g.arc(150,192,10,0,7);g.fill();g.fillStyle='#8a92c8';g.fillRect(148,196,5,14);
+   const q=g.createRadialGradient(300,262,3,300,262,48);q.addColorStop(0,'#ffffff');q.addColorStop(.35,'#ffc531');q.addColorStop(1,'rgba(255,197,49,0)');g.fillStyle=q;g.fillRect(250,212,100,100);
+   g.fillStyle='#ff3d7f';g.beginPath();g.moveTo(352,262);g.lineTo(430,226);g.lineTo(430,298);g.closePath();g.fill();g.fillStyle='#ffd23d';g.beginPath();g.arc(404,262,11,0,7);g.fill();
+   // a fan of three cards
+   const card=(x,y,a,c)=>{g.save();g.translate(x,y);g.rotate(a);g.fillStyle='#0e0c28';g.strokeStyle=c;g.lineWidth=7;g.beginPath();g.roundRect(-46,-64,92,128,14);g.fill();g.stroke();
+     g.fillStyle=c;g.fillRect(-28,-36,56,10);g.fillRect(-28,-18,40,8);g.beginPath();g.arc(24,40,13,0,7);g.fill();g.restore();};
+   card(196,418,-.28,'#9be04a');card(256,404,0,'#3ec8ff');card(316,418,.28,'#ffc531');
+ }`,
 };
 (async()=>{const b=await chromium.launch();const p=await b.newPage();
  const render=async(key,size,mask)=>{const data=await p.evaluate(([src,size,mask])=>{const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');
