@@ -10,7 +10,7 @@ Offline, touch-first games built entirely in code. Every model, sound and screen
 | **Rusty & Buckets** | The prelude to Wreckwatch: a turn-based team battler in the spirit of *Mario & Luigi: Superstar Saga*. Two combat engineers follow the Halcyon's distress call through 20 timed-hit battles, each behind a puzzle. Four of the puzzles are steered by tilting the phone. |
 | **Wreckwatch** | An isometric base-defense roguelite. Your frigate has crashed on a drifting rock. Build defenses from a hand of cards and hold every wave while the engineers repair it, across five rocks. |
 | **Moondrop** | A tilt-steered lunar lander. Tilt the phone to angle the lander and hold anywhere to thrust; set cargo down softly on twelve missions across four moons, with wind, caves and drifting aliens. Touch steering is available too. |
-| **Comet Kid** | A run-and-gun platformer in the spirit of Mega Man. Pick any of four strongholds, beat each guardian to take its weapon, then storm the Eclipse Core. Touch controls split by thumb: the left d-pad moves and jumps (push up or diagonally up), the right thumb shoots (hold to charge); below the game in portrait, at the sides in landscape. |
+| **Comet Kid** | A run-and-gun platformer in the spirit of Mega Man. Pick any of four strongholds, beat each guardian to take its weapon, then storm the Eclipse Core. Touch controls: an 8-way d-pad that moves and aims (shots follow the last direction you pushed), plus Jump and Shoot buttons (hold to charge); below the game in portrait, at the sides in landscape. |
 
 ## Install as an app
 The arcade installs to your home screen like an app: its own icon, full screen with no browser bars, and every game playable offline.

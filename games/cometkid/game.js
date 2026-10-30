@@ -12,7 +12,7 @@ const {P,geo,makeMat}=ARC;
 
 /* ===== SAVE */
 const KEY='cometkid.save.v1';
-function fresh(){return{v:1,beat:[0,0,0,0,0],best:[0,0,0,0,0],set:{sfx:true,music:true,vibe:true,jbtn:false,rapid:false},stats:{deaths:0,clears:0}};}
+function fresh(){return{v:1,beat:[0,0,0,0,0],best:[0,0,0,0,0],set:{sfx:true,music:true,vibe:true,rapid:false},stats:{deaths:0,clears:0}};}
 function merge(a,b){for(const k in b){const v=b[k];
   if(v&&typeof v==='object'&&!Array.isArray(v)&&a[k]&&typeof a[k]==='object'&&!Array.isArray(a[k]))merge(a[k],v);
   else if(k in a&&typeof v===typeof a[k]&&Array.isArray(v)===Array.isArray(a[k]))a[k]=v;}return a;}
@@ -108,7 +108,7 @@ const BOSS={mantis:{hp:28,sc:.62,r:1},warden:{hp:28,sc:.55,r:1.05},bastion:{hp:2
 
 /* ===== PHYSICS TUNING (tiles, seconds) */
 // Full jump rises JUMP^2/(2*GRAV) = 3.15 tiles and covers ~4.9 tiles of ground at RUN speed; letting go of jump cuts the rise.
-const FIX=1/60,RUN=5.5,JUMP=14.2,GRAV=32,FALL=15,CUT=3,PW=.36,PH=1.35,COYOTE=.08,BUFFER=.1,DROP_T=.3,RAPID=.18;
+const FIX=1/60,RUN=5.5,JUMP=14.2,GRAV=32,FALL=15,CUT=3,PW=.36,PH=1.35,COYOTE=.08,BUFFER=.1,RAPID=.18;
 const PER=5,PERT=300;          // every moving platform loops in 5 s (300 ticks)
 const CRUMBLE=.6,VIEW_H=12,CH1=.45,CH2=1.15,KB=.32,INV=1.3;
 
@@ -327,9 +327,9 @@ function burst(x,y,c){for(const sp of [3,6])for(let i=0;i<8;i++){const a=i*TAU/8
 
 /* ===== RUN STATE */
 let state='title';
-const PL={x:0,y:0,vx:0,vy:0,hw:PW,h:PH,gr:0,on:null,drop:0,dn:0,face:1,coy:0,buf:0,jh:0,kb:0,inv:0,hp:HMAX,dead:0,deadT:0,w:0,we:[0,EMAX,EMAX,EMAX,EMAX],chg:0,charging:0,shootT:0,anim:0,lvy:0,vis:1};
+const PL={x:0,y:0,vx:0,vy:0,hw:PW,h:PH,gr:0,on:null,drop:0,face:1,ah:1,ay:0,coy:0,buf:0,jh:0,kb:0,inv:0,hp:HMAX,dead:0,deadT:0,w:0,we:[0,EMAX,EMAX,EMAX,EMAX],chg:0,charging:0,shootT:0,anim:0,lvy:0,vis:1};
 const owned=w=>w===0||!!S.beat[w-1];
-function resetBody(b,x,y){Object.assign(b,{x,y,vx:0,vy:0,gr:0,on:null,drop:0,dn:0,coy:0,buf:0,jh:0,kb:0});}
+function resetBody(b,x,y){Object.assign(b,{x,y,vx:0,vy:0,gr:0,on:null,drop:0,ah:1,ay:0,coy:0,buf:0,jh:0,kb:0});}
 
 function startStage(i){
   state='play';hideScreens();parse(i);buildMeshes();
@@ -359,7 +359,7 @@ const ey=e=>e.c==='m'?e.y+.31:e.y;
 // Presses are latched so a tap shorter than a frame still registers.
 const keys={},touch={l:0,r:0,d:0,u:0,jump:0,shoot:0},latch={jump:0,shoot:0,sw:0};
 let auto=null;
-const KMAP={ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r',ArrowDown:'d',KeyS:'d',ArrowUp:'jump',KeyW:'jump',Space:'jump',KeyK:'jump',KeyZ:'jump',KeyJ:'shoot',KeyX:'shoot'};
+const KMAP={ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r',ArrowDown:'d',KeyS:'d',ArrowUp:'u',KeyW:'u',Space:'jump',KeyK:'jump',KeyZ:'jump',KeyJ:'shoot',KeyX:'shoot'};
 window.addEventListener('keydown',e=>{const k=KMAP[e.code];if(k||e.code==='Space')e.preventDefault();
   if(e.code==='Escape'||e.code==='KeyP'){if(state==='play')pause();else if(state==='paused')resume();return;}
   if(e.repeat)return;if(k){keys[k]=1;if(k==='jump'||k==='shoot')latch[k]=1;}
@@ -367,19 +367,17 @@ window.addEventListener('keydown',e=>{const k=KMAP[e.code];if(k||e.code==='Space
 window.addEventListener('keyup',e=>{const k=KMAP[e.code];if(k)keys[k]=0;});
 const prev={jump:0,shoot:0};
 function readInput(){
-  let h;if(auto){const a=auto(PL,G)||{};h={l:!!a.l,r:!!a.r,d:!!a.d,jump:!!a.jump,shoot:!!a.shoot};if(a.sw)latch.sw=a.sw;}
-  else h={l:!!(keys.l||touch.l),r:!!(keys.r||touch.r),d:!!(keys.d||touch.d),jump:!!(keys.jump||touch.jump||touch.u),shoot:!!(keys.shoot||touch.shoot)};
+  let h;if(auto){const a=auto(PL,G)||{};h={l:!!a.l,r:!!a.r,d:!!a.d,u:!!a.u,jump:!!a.jump,shoot:!!a.shoot};if(a.sw)latch.sw=a.sw;}
+  else h={l:!!(keys.l||touch.l),r:!!(keys.r||touch.r),d:!!(keys.d||touch.d),u:!!(keys.u||touch.u),jump:!!(keys.jump||touch.jump),shoot:!!(keys.shoot||touch.shoot)};
   h.jp=(h.jump&&!prev.jump)||!!latch.jump;h.sp=(h.shoot&&!prev.shoot)||!!latch.shoot;h.sr=!h.shoot&&(prev.shoot||!!latch.shoot);h.sw=latch.sw;
   if(latch.shoot&&!h.shoot)h.sr=1;prev.jump=h.jump;prev.shoot=h.shoot;latch.jump=latch.shoot=latch.sw=0;return h;}
-// Touch pad: each pointer drives one control, so run + jump + shoot work together. The whole left half is the d-pad;
-// the right side is Shoot (plus the optional Jump button).
+// Touch pad: each pointer drives one control, so run + jump + shoot work together. The whole left half is the d-pad.
 const ptr=new Map(),padPts=new Map();
-// 8-way: the thumb's angle from the pad centre picks one of eight 45-degree sectors. Up and the upper diagonals jump
-// (held, so a long press still jumps higher); diagonals light both arrows they combine.
+// 8-way: the thumb's angle from the pad centre picks one of eight 45-degree sectors, which moves and aims (see aimV);
+// diagonals light both arrows they combine.
 function padDir(){let l=0,r=0,d=0,u=0;const b=$('dpad').getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2,dz=b.width*.11;
   for(const [,p] of padPts){const dx=p.x-cx,dy=p.y-cy;if(Math.hypot(dx,dy)<dz)continue;const k=((Math.round(Math.atan2(dy,dx)/(Math.PI/4))%8)+8)%8;
     if(k===7||k===0||k===1)r=1;if(k>=3&&k<=5)l=1;if(k>=1&&k<=3)d=1;if(k>=5&&k<=7)u=1;}
-  if(u&&!touch.u)latch.jump=1;
   touch.l=l;touch.r=r;touch.d=d;touch.u=u;for(const [c,v] of [['l',l],['r',r],['d',d],['u',u]])$('dpad').querySelector('.'+c).classList.toggle('on',!!v);}
 $('padL').addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}ptr.set(e.pointerId,'pad');padPts.set(e.pointerId,{x:e.clientX,y:e.clientY});padDir();});
 $('padL').addEventListener('pointermove',e=>{if(padPts.has(e.pointerId)){padPts.set(e.pointerId,{x:e.clientX,y:e.clientY});padDir();}});
@@ -441,11 +439,8 @@ function tick(inp){
     phys(PL,{},dt);}
   else if(ph==='run'||ph==='boss'||ph==='won'){
     if(PL.dead){PL.deadT+=dt;if(PL.deadT>2.2)respawn(false);}
-    else{const jumpedBefore=PL.gr;
-      // Holding straight Down on a one-way ledge drops through, so it works one-thumbed. A thumb drifting low while
-      // running reads as a down-diagonal (l/r set), which never counts. Down + jump still drops at once.
-      PL.dn=ph!=='won'&&inp.d&&!inp.l&&!inp.r&&PL.gr&&onOneway(PL)?PL.dn+dt:0;if(PL.dn>=DROP_T){PL.dn=0;PL.drop=.22;}
-      phys(PL,ph==='won'&&G.pt>2?{}:inp,dt);
+    else{const jumpedBefore=PL.gr;phys(PL,ph==='won'&&G.pt>2?{}:inp,dt);
+      if(ph!=='won'){const h=(inp.r||inp.l)&&!(inp.r&&inp.l)?1:0,v=(inp.u?1:0)-(inp.d?1:0);if(h||v){PL.ah=h;PL.ay=v;}}
       if(PL.jumped){PL.jumped=0;Snd.play('jump');}
       if(PL.gr&&!jumpedBefore&&PL.lvy<-7)Snd.play('land');
       if(ph!=='won')weapons(inp,dt);}
@@ -500,22 +495,25 @@ function weapons(inp,dt){const p=PL;
   else if(S.set.rapid&&p.w===0&&inp.shoot&&p.shootT<=.3-RAPID)fire(0);
   if(p.w===0&&p.charging){if(inp.shoot||inp.sp){const c0=p.chg;p.chg+=dt;if(p.chg>.2&&Math.floor(p.chg*10)!==Math.floor(c0*10))Snd.play('chg',Math.min(1,p.chg/CH2));}
     if(inp.sr){if(p.chg>=CH2)fire(2);else if(p.chg>=CH1)fire(1);p.chg=0;p.charging=0;}}}
-function fire(lvl){const p=PL,w=p.w,f=p.face,x=p.x+f*.66,y=p.y+.74;
+// Aim is the last direction pushed (ah: forward or not, ay: -1/0/1), so tapping up and letting go keeps shots going up.
+// Straight down on the ground would hit the floor, so it angles forward. Returns a unit vector in hero space (x forward).
+function aimV(){const p=PL;let h=p.ah,v=p.ay;if(v<0&&!h&&p.gr)h=1;const n=Math.hypot(h,v)||1;return [h/n,v/n];}
+function fire(lvl){const p=PL,w=p.w,f=p.face,[ah,ay]=aimV(),dx=ah*f,dy=ay,x=p.x+dx*.66,y=p.y+.74+dy*.66;
   if(w===0){if(!lvl&&G.shots.filter(s=>s.k==='b'&&!s.lvl).length>=3)return;
-    G.shots.push({k:'b',w:0,lvl,x,y,vx:f*(lvl?16:15),vy:0,r:[.2,.34,.55][lvl],dmg:[1,2,4][lvl],bd:[1,2,3][lvl],life:1.3,pierce:lvl===2,hit:new Map()});
+    G.shots.push({k:'b',w:0,lvl,x,y,vx:dx*(lvl?16:15),vy:dy*(lvl?16:15),r:[.2,.34,.55][lvl],dmg:[1,2,4][lvl],bd:[1,2,3][lvl],life:1.3,pierce:lvl===2,hit:new Map()});
     p.shootT=.3;Snd.play(lvl===2?'shot2':lvl?'shot1':'shot');return;}
   const W_=WEAP[w];
   if(w===3){const orbs=G.shots.filter(s=>s.k==='orb'&&!s.thrown);
-    if(orbs.length){for(const s of orbs){s.thrown=1;s.vx=f*12;s.vy=0;s.life=1.4;}p.shootT=.3;Snd.play('ward');return;}}
+    if(orbs.length){for(const s of orbs){s.thrown=1;s.vx=dx*12;s.vy=dy*12;s.life=1.4;}p.shootT=.3;Snd.play('ward');return;}}
   else if(w===1&&G.shots.some(s=>s.k==='blade'))return;
   else if(w===2&&G.shots.filter(s=>s.k==='rocket').length>=2)return;
   else if(w===4&&G.shots.filter(s=>s.k==='flare').length>=6)return;
   if(p.we[w]<W_.cost){Snd.play('empty');return;}
   p.we[w]-=W_.cost;p.shootT=.3;
-  if(w===1){G.shots.push({k:'blade',w,x,y,vx:f*13,ax:-f*15,vy:0,r:.5,dmg:2,bd:1,life:2.6,pierce:1,re:.35,hit:new Map(),rot:0});Snd.play('scythe');}
-  else if(w===2){G.shots.push({k:'rocket',w,x,y,vx:f*6,vy:1.2,sp:6,r:.32,dmg:3,bd:1,life:2.6,hit:new Map()});Snd.play('rocket');}
+  if(w===1){G.shots.push({k:'blade',w,x,y,vx:dx*13,vy:dy*13,ax:-dx*15,ay:-dy*15,r:.5,dmg:2,bd:1,life:2.6,pierce:1,re:.35,hit:new Map(),rot:0});Snd.play('scythe');}
+  else if(w===2){G.shots.push({k:'rocket',w,x,y,vx:dx*6,vy:dy*6+(dy?0:1.2),sp:6,r:.32,dmg:3,bd:1,life:2.6,hit:new Map()});Snd.play('rocket');}
   else if(w===3){for(let k=0;k<4;k++)G.shots.push({k:'orb',w,a:k*TAU/4,x:p.x,y:p.y+.7,vx:0,vy:0,r:.36,dmg:2,bd:1,life:1e9,pierce:1,re:.3,hit:new Map()});Snd.play('ward');}
-  else if(w===4){for(const a of [-.24,0,.24])G.shots.push({k:'flare',w,x,y,vx:Math.cos(a)*f*12.5,vy:Math.sin(a)*12.5,r:.28,dmg:2,bd:1,life:1.1,hit:new Map()});Snd.play('flare');}
+  else if(w===4){const a0=Math.atan2(dy,dx);for(const o of [-.24,0,.24])G.shots.push({k:'flare',w,x,y,vx:Math.cos(a0+o)*12.5,vy:Math.sin(a0+o)*12.5,r:.28,dmg:2,bd:1,life:1.1,hit:new Map()});Snd.play('flare');}
 }
 // Damage to a guardian: its weakness hits hard and staggers it; otherwise buster shots count by charge, specials barely scratch.
 function bossDmg(s,b){return s.w&&s.w===STAGES[G.i].weak?4:s.w?1:s.bd;}
@@ -523,14 +521,15 @@ function shotsTick(dt){
   const sh=G.shots;
   for(let i=sh.length-1;i>=0;i--){const s=sh[i];s.life-=dt;let dead=s.life<=0;
     if(s.k==='orb'&&!s.thrown){s.a+=dt*5.5;s.x=PL.x+Math.cos(s.a)*1.25;s.y=PL.y+.7+Math.sin(s.a)*1.25;if(PL.dead)dead=1;}
-    else if(s.k==='blade'){s.vx+=s.ax*dt;s.x+=s.vx*dt;s.rot+=dt*18;const back=s.vx*s.ax>0;if(back){s.y+=(PL.y+.74-s.y)*Math.min(1,dt*5);if(Math.abs(s.x-PL.x)<.6)dead=1;}}
+    else if(s.k==='blade'){s.vx+=s.ax*dt;s.vy+=s.ay*dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.rot+=dt*18;
+      if(s.vx*s.ax+s.vy*s.ay>0){const tx=PL.x-s.x,ty=PL.y+.74-s.y,d=Math.hypot(tx,ty)||1,sp=Math.hypot(s.vx,s.vy);s.vx=tx/d*sp;s.vy=ty/d*sp;s.ax=tx/d*15;s.ay=ty/d*15;if(d<.6)dead=1;}}
     else if(s.k==='rocket'){let tg=null,bd=81;if(G.boss&&!G.boss.dead&&G.phase==='boss'){tg={x:G.boss.x,y:G.boss.y};bd=0;}
       if(!tg)for(const e of G.en){if(!e.on||!e.act)continue;const d=(e.x-s.x)**2+(ey(e)-s.y)**2;if(d<bd){bd=d;tg={x:e.x,y:ey(e)};}}
       s.sp=Math.min(12,s.sp+dt*10);let a=Math.atan2(s.vy,s.vx);if(tg){const want=Math.atan2(tg.y-s.y,tg.x-s.x);let da=want-a;da=Math.atan2(Math.sin(da),Math.cos(da));a+=clamp(da,-5*dt,5*dt);}
       s.vx=Math.cos(a)*s.sp;s.vy=Math.sin(a)*s.sp;s.x+=s.vx*dt;s.y+=s.vy*dt;if(Math.random()<.7)part(s.x-s.vx*.03,s.y-s.vy*.03,.4,0,0,.25,.22,.05,COL.orange,0,0,0);}
     else{s.x+=s.vx*dt;s.y+=s.vy*dt;}
     if(s.k!=='blade'&&!(s.k==='orb'&&!s.thrown)&&solid(Math.floor(s.x),Math.floor(s.y))){dead=1;spark(s.x,s.y,WCOL[s.w]);if(s.k==='rocket')boom(s.x,s.y,.4,COL.orange);}
-    if(Math.abs(s.x-cam.x)>cam.hw+1.5)dead=1;
+    if(Math.abs(s.x-cam.x)>cam.hw+1.5||s.y>ROWS+4||s.y<-3)dead=1;
     if(!dead)for(const e of G.en){if(!e.on||!e.act||(e.c==='e'&&e.st))continue;const er=e.r+s.r,dx=e.x-s.x,dy=ey(e)-s.y;if(dx*dx+dy*dy>er*er)continue;
       const h=s.hit.get(e);if(h!=null&&(s.re==null||G.t-h<s.re))continue;s.hit.set(e,G.t);
       if(e.c==='t'&&e.n===0&&e.cd>.5&&s.w===0&&!s.lvl){Snd.play('tink');spark(s.x,s.y,COL.white);if(!s.pierce){dead=1;break;}continue;}
@@ -682,10 +681,12 @@ function draw(dt,now){
   const run=p.gr&&Math.abs(p.vx)>.1&&p.kb<=0;if(run)p.anim+=dt*13;else p.anim=0;
   const sw=Math.sin(p.anim);K.legs[0].rotation.z=p.gr?(run?sw*.8:0):.6;K.legs[1].rotation.z=p.gr?(run?-sw*.8:0):-.35;
   K.body.position.y=run?Math.abs(Math.cos(p.anim))*.06:0;K.body.rotation.z=p.kb>0?.35:p.gr?0:-.08;
-  K.arm.rotation.z=lerp(K.arm.rotation.z,p.shootT>0||p.charging&&p.chg>.15?0:-1.15,Math.min(1,dt*20));K.back.rotation.z=run?-sw*.6:.2;
+  const [aH,aY]=aimV(),aimA=Math.atan2(aY,aH),aimed=aY!==0||!aH;
+  K.arm.rotation.z=lerp(K.arm.rotation.z,p.shootT>0||p.charging&&p.chg>.15||aimed?aimA:-1.15,Math.min(1,dt*20));K.back.rotation.z=run?-sw*.6:.2;
   const wc=WEAP[p.w].c;let ac=_c.setHex(wc);if(p.charging&&p.chg>CH1){const f=p.chg>=CH2?Math.floor(tt*16)%2:Math.floor(tt*9)%2;if(f)ac=_c.setHex(p.chg>=CH2?0xffe6b0:0xffffff);}
   K.acc.color.copy(ac);K.base.userData.flash.value=K.acc.userData.flash.value=p.kb>0?.6:0;
-  if(K.g.visible){const cx=p.x+p.face*.68,cy=p.y+.74+K.body.position.y;
+  if(K.g.visible){const cx=p.x+aH*p.face*.68,cy=p.y+.74+aY*.68+K.body.position.y;
+    if(aimed&&state==='play')fx.push(p.x+aH*p.face*1.5,p.y+.74+aY*1.5,.8,0,.22,.22,0,.55,WCOL[p.w]);
     if(p.charging&&p.chg>.2){const lv=p.chg>=CH2?2:p.chg>=CH1?1:0,s=(.35+lv*.3)*(1+Math.sin(tt*30)*.15);fx.push(cx,cy,.9,0,s,s,0,.85,lv===2?COL.hot:WCOL[0]);
       if(Math.random()<.5){const a=rand(0,TAU),r=.6+lv*.3;part(cx+Math.cos(a)*r,cy+Math.sin(a)*r,.9,-Math.cos(a)*r*4,-Math.sin(a)*r*4,.15,.12,.05,lv===2?COL.gold:COL.cyan,0,0,0);}}
     if(!p.gr&&p.vy>0)fx.push(p.x-p.face*.3,p.y+.42,.2,0,.25,.4,0,.7,COL.orange);}
@@ -732,7 +733,7 @@ function draw(dt,now){
   // shots
   for(const k in PROJ)PROJ[k].count=0;
   for(const s of G.shots){const c=WCOL[s.w];
-    if(s.k==='b'){const L=s.lvl;fx.push(s.x,s.y,.8,0,s.r*3.2,s.r*2.6,0,1,L===2?COL.hot:c);if(L)fx.push(s.x-Math.sign(s.vx)*s.r*1.6,s.y,.7,PI/2,s.r*1.6,s.r*5,2,.8,c);}
+    if(s.k==='b'){const L=s.lvl;fx.push(s.x,s.y,.8,0,s.r*3.2,s.r*2.6,0,1,L===2?COL.hot:c);if(L){const a=Math.atan2(s.vy,s.vx);fx.push(s.x-Math.cos(a)*s.r*1.6,s.y-Math.sin(a)*s.r*1.6,.7,a+PI/2,s.r*1.6,s.r*5,2,.8,c);}}
     else if(s.k==='blade'){const m=PROJ.blade;setI(m,m.count++,s.x,s.y,.6,0,0,s.rot,1.1);fx.push(s.x,s.y,.5,0,1.4,1.4,1,.5,c);}
     else if(s.k==='rocket'){const m=PROJ.rocket;setI(m,m.count++,s.x,s.y,.6,0,0,Math.atan2(s.vy,s.vx),1.2);fx.push(s.x-s.vx*.04,s.y-s.vy*.04,.5,0,.5,.5,0,.9,COL.hot);}
     else if(s.k==='orb'){const m=PROJ.crystal;setI(m,m.count++,s.x,s.y,.6,0,tt*3,s.a,1);fx.push(s.x,s.y,.5,0,1,1,0,.5,c);}
@@ -790,8 +791,7 @@ function pause(){if(state!=='play')return;state='paused';clearInput();hideScreen
 function resume(){if(state!=='paused')return;hideScreens();state='play';clearInput();Snd.resume();last=performance.now();acc=0;requestWake();}
 let settingsFrom='title',confirmReset=false;
 function openSettings(from){settingsFrom=from;$(from).hidden=true;$('settings').hidden=false;confirmReset=false;renderSettings();}
-function applyPad(){document.body.classList.toggle('jbtn',!!S.set.jbtn);
-  $('tHint').textContent=document.body.classList.contains('touch')?'Push up to jump · hold ↓ to drop':'Space jumps · J shoots';}
+function applyPad(){$('tHint').textContent=document.body.classList.contains('touch')?'Pad aims · last direction sticks':'Arrows aim · Space jumps · J shoots';}
 function renderSettings(){for(const t of document.querySelectorAll('#settings .tog'))t.classList.toggle('on',!!S.set[t.dataset.set]);$('setReset').textContent=confirmReset?'Tap again to erase everything':'Reset all progress';}
 // Guardian portraits for the stage select, rendered once into a small target and read back.
 let thumbCache=null;
@@ -825,7 +825,7 @@ $('rMain').onclick=e=>act(e.target.dataset.act);$('rAlt').onclick=e=>act(e.targe
 function act(a){if(a==='retry')startStage(G.i);else if(a==='title')goTitle();else goSelect();}
 $('setClose').onclick=()=>{$('settings').hidden=true;$(settingsFrom).hidden=false;};
 $('settings').addEventListener('click',e=>{
-  const t=e.target.closest('.tog');if(t){const k=t.dataset.set;S.set[k]=!S.set[k];Snd.apply();if(k==='vibe'&&S.set.vibe)vibe(30);if(k==='jbtn')applyPad();if(k==='music'&&!S.set.music)Mus.stop();else if(k==='music'&&Mus.want)Mus.play(Mus.want[0],Mus.want[1]);save();renderSettings();return;}
+  const t=e.target.closest('.tog');if(t){const k=t.dataset.set;S.set[k]=!S.set[k];Snd.apply();if(k==='vibe'&&S.set.vibe)vibe(30);if(k==='music'&&!S.set.music)Mus.stop();else if(k==='music'&&Mus.want)Mus.play(Mus.want[0],Mus.want[1]);save();renderSettings();return;}
   if(e.target.id==='setReset'){if(!confirmReset){confirmReset=true;renderSettings();return;}const keep=S.set;S=fresh();S.set=keep;save();confirmReset=false;PL.w=0;$('settings').hidden=true;goTitle();}});
 document.addEventListener('touchmove',e=>{if(!e.target.closest||!e.target.closest('.scroll'))e.preventDefault();},{passive:false});
 for(const ev of ['gesturestart','gesturechange','dblclick','contextmenu'])document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
@@ -850,7 +850,7 @@ function frame(now){
 
 /* ===== BOOT */
 applyPad();resize();goTitle();requestAnimationFrame(t=>{last=t;frame(t);});
-// Test hook. step(dt) runs fixed ticks; auto = (hero, G) => ({l, r, d, jump, shoot, sw}) replaces player input; god 1 = no damage, 2 = nothing kills.
+// Test hook. step(dt) runs fixed ticks; auto = (hero, G) => ({l, r, d, u, jump, shoot, sw}) replaces player input; god 1 = no damage, 2 = nothing kills.
 window.__comet={get S(){return S;},G,PL,STAGES,WEAP,ET,BOSS,ROWS,FIX,PERT,consts:{RUN,JUMP,GRAV,CUT,PW,PH,COYOTE,CRUMBLE},startStage,respawn,tick,
   step(dt){let n=Math.round(dt/FIX);while(n-->0&&state==='play')tick();},get state(){return state;},set auto(f){auto=f;},get auto(){return auto;},
   set god(v){G.god=v;},get god(){return G.god;},keys,touch,latch,phys,moveX,moveY,solid,oneway,tileK,spiked,setPlats,platAt,assemble,parse,cam,
