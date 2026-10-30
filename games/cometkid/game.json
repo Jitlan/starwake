@@ -1,0 +1,8 @@
+{
+ "title": "Comet Kid",
+ "tagline": "Run-and-gun platformer",
+ "blurb": "Run, jump and blast through four robot strongholds in any order. Beat each guardian, take its weapon, then storm the Eclipse Core.",
+ "order": 5,
+ "accent": "#5dff9b",
+ "save_key": "cometkid.save.v1"
+}

@@ -83,6 +83,29 @@ const DRAW={
    const q=g.createRadialGradient(440,268,2,440,268,34);q.addColorStop(0,'#ffffff');q.addColorStop(.3,'#4aa8ff');q.addColorStop(1,'rgba(74,168,255,0)');g.fillStyle=q;g.fillRect(400,228,80,80);
    g.font='900 italic 64px sans-serif';g.fillStyle='#ffc531';g.textAlign='center';g.fillText('&',258,330);
  }`.replace('PI_','Math.PI'),
+ cometkid:`(g)=>{
+   const bg=g.createRadialGradient(256,150,20,256,256,380);bg.addColorStop(0,'#1d1760');bg.addColorStop(1,'#07061a');g.fillStyle=bg;g.fillRect(0,0,512,512);
+   let seed=13;const r=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+   for(let i=0;i<50;i++){g.globalAlpha=.25+r()*.6;g.fillStyle='#cfd8ff';const z=r()*2.4+.6;g.fillRect(r()*512,r()*380,z,z);}g.globalAlpha=1;
+   const rect=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);};
+   // ground with a glowing edge
+   rect(0,436,512,76,'#1d3324');rect(0,430,512,9,'#9be04a');for(let x=0;x<512;x+=64)rect(x+6,448,52,56,'#26402e');
+   // the charged comet shot and its trail
+   const tr=g.createLinearGradient(330,0,470,0);tr.addColorStop(0,'rgba(62,240,255,0)');tr.addColorStop(1,'rgba(62,240,255,.85)');g.fillStyle=tr;
+   g.beginPath();g.moveTo(330,262);g.lineTo(440,236);g.lineTo(440,300);g.lineTo(330,282);g.fill();
+   const q=g.createRadialGradient(440,268,4,440,268,62);q.addColorStop(0,'#ffffff');q.addColorStop(.35,'#3ef0ff');q.addColorStop(1,'rgba(62,240,255,0)');g.fillStyle=q;g.fillRect(370,198,140,140);
+   // the kid: a pink offset shadow, then the suit
+   const kid=(dx,dy,mono)=>{const c=k=>mono||k;g.save();g.translate(dx,dy);
+     rect(186,338,34,70,c('#d8deef'));rect(234,338,34,70,c('#d8deef'));rect(176,398,54,30,c('#3ec8ff'));rect(228,398,54,30,c('#3ec8ff'));
+     rect(140,262,44,72,c('#c8d0ea'));rect(172,250,116,96,c('#3ec8ff'));rect(170,326,120,16,c('#2a3050'));
+     rect(262,256,96,46,c('#3ec8ff'));rect(350,248,16,62,c('#e8eefc'));
+     g.fillStyle=c('#e8eefc');g.beginPath();g.arc(228,186,80,0,7);g.fill();
+     rect(208,96,10,30,c('#8a92c8'));g.restore();};
+   kid(14,12,'#ff3d7f');kid(0,0);
+   g.fillStyle='#3ef0ff';g.beginPath();g.moveTo(236,160);g.lineTo(306,160);g.lineTo(300,212);g.lineTo(236,212);g.closePath();g.fill();
+   g.fillStyle='#07061a';g.fillRect(256,172,12,26);g.fillRect(282,172,12,26);
+   g.fillStyle='#ffc531';g.beginPath();g.arc(213,92,13,0,7);g.fill();rect(214,282,22,22,'#3ef0ff');
+ }`,
 };
 (async()=>{const b=await chromium.launch();const p=await b.newPage();
  const render=async(key,size,mask)=>{const data=await p.evaluate(([src,size,mask])=>{const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');
