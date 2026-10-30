@@ -197,11 +197,11 @@ function music(snd,o){return{on:false,mode:'',step:0,next:0,bpm:128,key:45,prog:
 function vibe(on,ms){if(!on||!navigator.vibrate)return;try{navigator.vibrate(ms);}catch(e){}}
 
 /* ================================================================ MOTION (phone tilt) */
-/* motion.read() = left-right tilt in radians relative to calibrate(), positive = right side down. It works however the phone
+/* motion.read() = left-right tilt in radians (read2() adds forward/back) relative to calibrate(), positive = right side down. It works however the phone
    is held, upright like a steering wheel or flat like a tray, because it uses the gravity vector rather than raw Euler angles.
    iOS only grants sensor access from inside a tap, so call motion.start() from a button handler; it resolves true when
    permission is granted. motion.live says whether readings are actually arriving (false on desktops). */
-const motion={ok:false,on:false,denied:false,raw:0,zero:0,last:0,
+const motion={ok:false,on:false,denied:false,raw:0,zero:0,pitch:0,zp:0,last:0,
   start(){const D=window.DeviceOrientationEvent;if(!D)return Promise.resolve(false);
     const go=()=>{if(!this.on){this.on=true;window.addEventListener('deviceorientation',e=>this.ev(e));}return true;};
     if(typeof D.requestPermission==='function')return D.requestPermission().then(r=>{if(r==='granted')return go();this.denied=true;return false;}).catch(()=>{this.denied=true;return false;});
@@ -209,10 +209,12 @@ const motion={ok:false,on:false,denied:false,raw:0,zero:0,last:0,
   ev(e){if(e.beta==null||e.gamma==null)return;const b=e.beta*PI/180,g=e.gamma*PI/180;
     // Gravity in device coordinates (W3C z-x'-y'' order), then turned into screen coordinates if the screen is rotated.
     const gx=Math.sin(g)*Math.cos(b),gy=-Math.sin(b),a=((screen.orientation&&screen.orientation.angle)||window.orientation||0)*PI/180;
-    const sx=gx*Math.cos(a)-gy*Math.sin(a);this.raw=Math.asin(Math.max(-1,Math.min(1,sx)));this.ok=true;this.last=performance.now();},
-  calibrate(){this.zero=this.raw;},
+    const sx=gx*Math.cos(a)-gy*Math.sin(a);this.raw=Math.asin(Math.max(-1,Math.min(1,sx)));this.pitch=b;this.ok=true;this.last=performance.now();},
+  calibrate(){this.zero=this.raw;this.zp=this.pitch;},
   get live(){return this.ok&&performance.now()-this.last<1500;},
-  read(){return this.raw-this.zero;}};
+  read(){return this.raw-this.zero;},
+  // Two axes for top-down tilt games: x = right side down, y = top edge tipped away (a ball would roll up the screen). Radians.
+  read2(){return{x:this.raw-this.zero,y:-(this.pitch-this.zp)};}};
 
 return{P,M,geo,makeMat,ALIENS,BOSSES,disposeGroup,Batch,VS_PLANE,VS_ISO,FX_FS,EB_FS,synth,music,mtof,vibe,motion};
 })();
