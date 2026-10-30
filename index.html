@@ -52,6 +52,7 @@ footer{margin-top:auto;display:grid;gap:10px;text-align:center;color:var(--faint
 .status.ok i{background:var(--good);box-shadow:0 0 8px var(--good)}
 .install{padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--dim);text-align:left;font:14px/1.45 var(--f-body)}
 .install b{color:var(--ink)}
+.install button{display:block;margin-top:10px;min-height:44px;padding:0 18px;border:0;border-radius:12px;background:var(--player);color:#04121a;font:800 13px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 @media (max-width:380px){.game{grid-template-columns:64px minmax(0,1fr)}.game img,.game .ph{width:64px;height:64px;border-radius:14px}}
 @media (prefers-reduced-motion:reduce){.game{transition:none}}
 </style>
@@ -70,7 +71,7 @@ footer{margin-top:auto;display:grid;gap:10px;text-align:center;color:var(--faint
 <a class="game" href="cometkid/" style="--a:#5dff9b" data-key="cometkid.save.v1"><img src="cometkid/icon.png" alt="" width="84" height="84"><span class="gt"><span class="eyebrow">Run-and-gun platformer</span><b>Comet Kid</b><span class="bl">Run, jump and blast through four robot strongholds in any order. Beat each guardian, take its weapon, then storm the Eclipse Core.</span><span class="saved" hidden>Saved progress on this device</span><span class="go" aria-hidden="true">Play</span></span></a>
   </nav>
   <footer>
-    <div class="install" id="install" hidden><b>Install on iPhone or iPad:</b> tap Share, then Add to Home Screen. Open it once while online and the whole arcade works in airplane mode.</div>
+    <div class="install" id="install" hidden><span id="instTxt"></span><button id="instBtn" hidden>Install arcade</button></div>
     <div><span class="status" id="status"><i></i><span id="statusTxt">Checking offline copy…</span></span></div>
     <div>Saves stay on this device.</div>
   </footer>
@@ -81,7 +82,15 @@ footer{margin-top:auto;display:grid;gap:10px;text-align:center;color:var(--faint
   for(const a of document.querySelectorAll('.game')){try{if(a.dataset.key&&localStorage.getItem(a.dataset.key))a.querySelector('.saved').hidden=false;}catch(e){}}
   const standalone=navigator.standalone||matchMedia('(display-mode: standalone),(display-mode: fullscreen)').matches;
   const ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(ios&&!standalone)document.getElementById('install').hidden=false;
+  // Install tips for phones: iOS only installs from Safari's Share sheet; Android browsers use their menu, and Chrome
+  // also offers a one-tap prompt (beforeinstallprompt) once the service worker is ready.
+  const inst=document.getElementById('install'),ib=document.getElementById('instBtn'),android=/Android/.test(navigator.userAgent);let ask=null;
+  if(!standalone&&(ios||android)){inst.hidden=false;document.getElementById('instTxt').innerHTML=ios?
+    '<b>Install on iPhone or iPad:</b> in Safari, tap Share (on newer iOS it is under the ••• button), then Add to Home Screen. Open it once while online and the whole arcade works in airplane mode.':
+    '<b>Install on Android:</b> open the browser menu (⋮) and tap Install app or Add to Home screen. Open it once while online and the whole arcade works in airplane mode.';}
+  addEventListener('beforeinstallprompt',e=>{e.preventDefault();ask=e;inst.hidden=false;ib.hidden=false;});
+  ib.onclick=()=>{if(!ask)return;ask.prompt();ask.userChoice.finally(()=>{ask=null;ib.hidden=true;});};
+  addEventListener('appinstalled',()=>{inst.hidden=true;});
   const st=document.getElementById('status'),tx=document.getElementById('statusTxt');
   function check(){if(!window.caches){tx.textContent='Offline play needs a browser with service workers';return;}
     caches.keys().then(ks=>{const ok=ks.some(k=>k.indexOf('arcade-')===0);st.classList.toggle('ok',ok);
