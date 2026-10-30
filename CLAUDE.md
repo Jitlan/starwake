@@ -7,8 +7,9 @@ A for-fun project: offline, touch-first browser games built entirely in code, pl
   - `starwake`: vertical bullet-hell shooter (the original game).
   - `wreckwatch`: isometric base-defense roguelite set in Starwake's universe.
   - `moondrop`: tilt-steered lunar lander (phone motion sensors, touch fallback).
+  - `rustybuckets`: turn-based team battler (prelude to Wreckwatch) with timed hits, puzzles before each battle, four of them tilt-driven.
   - `_template`: minimal starter. Folders starting with `_` are skipped by the build. Scaffold with `python3 tools/new_game.py <id> "<Title>"`.
-- `shared/kit.js`: loaded as `window.ARC` before every game: low-poly model builder (`geo`, `P`, `M`, `makeMat`), Starwake's aliens (`ALIENS`) and bosses (`BOSSES`), glow batches (`Batch`, `FX_FS`, `EB_FS`, `VS_PLANE`, `VS_ISO`), the synth (`synth`, `music`, plus `snd.loop()` for sustained engine/wind sounds), and phone tilt (`motion`). Reuse it before writing new versions, and move anything a second game would want into it.
+- `shared/kit.js`: loaded as `window.ARC` before every game: low-poly model builder (`geo`, `P`, `M`, `makeMat`), Starwake's aliens (`ALIENS`) and bosses (`BOSSES`), glow batches (`Batch`, `FX_FS`, `EB_FS`, `VS_PLANE`, `VS_ISO`), the synth (`synth`, `music`, plus `snd.loop()` for sustained engine/wind sounds), and phone tilt (`motion.read()` left-right, `motion.read2()` two-axis). Reuse it before writing new versions, and move anything a second game would want into it.
 - `arcade/launcher.html`: front page; `tools/build.py` inserts a card per game.
 - `vendor/three.min.js`: Three.js r158, the only library.
 - `tools/build.py` → `dist/` (gitignored). `tools/make_icons.js` redraws app icons and per-game `icon.png` (one drawer per game id).
@@ -27,7 +28,7 @@ Match the existing dense style: compact single-letter locals, short one-line fun
 ## Building and testing
 - `python3 tools/build.py`, then serve `dist/arcade/` (e.g. `python3 -m http.server 8765` in that folder). The build deletes and recreates `dist/arcade/`, so restart any server running inside it afterwards.
 - Chromium + Playwright are preinstalled. Headless WebGL needs `chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']})`. Use a 390×844 mobile viewport for the main layout check.
-- Debug hooks: `window.__starwake`, `window.__wreck` and `window.__moondrop` expose state and functions (`startLevel`, `newRun`, `step`, `launchWave`, `play`, `spawnEnemy`, ...). Calling `step(1/30)` in a loop inside `page.evaluate` simulates fast without rendering.
+- Debug hooks: `window.__starwake`, `window.__wreck`, `window.__moondrop` and `window.__rb` expose state and functions (`startLevel`, `newRun`, `step`, `launchWave`, `play`, `spawnEnemy`, ...). Calling `step(1/30)` in a loop inside `page.evaluate` simulates fast without rendering.
 - Click or tap once in tests so audio starts. Some bugs (music) only appear once the AudioContext exists.
 - Before pushing a gameplay change: screenshot the affected screens, check for `pageerror`s, and for Wreckwatch run a scripted bot through whole runs on each difficulty to catch stalls and balance swings.
 - Offline check: load the launcher, wait for an `arcade-*` cache, `context.setOffline(true)`, then reload and open each game.
@@ -45,6 +46,13 @@ Match the existing dense style: compact single-letter locals, short one-line fun
 - Headless Chromium also gates sensors: `context.grantPermissions(['accelerometer','gyroscope','magnetometer'])`, then dispatch `new DeviceOrientationEvent('deviceorientation',{beta,gamma})`.
 - `__moondrop.auto = (ship, world) => ({ta, thr})` replaces player input; use it to fly an autopilot through every mission after changing terrain, fuel or hazards. All 12 missions must complete with hazards removed.
 - Hazard and fuel-cell layouts are seeded per mission and keep their whole patrol area clear of the start and of the air above each pad. Lifting off a pad never counts as a landing.
+
+## Rusty & Buckets notes
+- World is y-up (XZ ground). In battle the camera sits behind the duo: Rusty is lane 0 (left), Buckets lane 1 (right), and their panels double as the timing buttons; tapping either half of the field counts too.
+- A battle is one generator (`battleLoop`) that yields seconds, `{prompts}` (timing taps; each prompt's callback fires the moment it resolves) or `{input:'cmd'}`. Hero attacks, team moves and alien attacks are small generators built on that.
+- Kit aliens are shown the Starwake way (flat to the camera, pointing at the duo); bosses come straight from `ARC.BOSSES`.
+- Puzzles: `PUZ` holds lights, wires, crates (levels in `CRATES`, verified solvable with a BFS), simon, and the gyro four (slide, maze, wind, signal) that read `tilt()` (motion, or a drag stick).
+- Balance check: set `__rb.auto = p => ({hit, err})` and `__rb.autoCmd = hero => command`, then run every stage with `tickBattle(1/30)`. Reference: 85% timing breezes, 50-60% finishes with retries on the last bosses, 40% stalls at the third boss.
 
 ## Workflow
 - Branch, push, then merge to `main` when the user is happy. Merging publishes.

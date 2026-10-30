@@ -7,6 +7,7 @@ Offline, touch-first games built entirely in code. Every model, sound and screen
 | Game | What it is |
 | --- | --- |
 | **Starwake** | A vertical space shooter in the spirit of Tyrian (1995). Five sectors with multi-phase bosses, a hangar of weapon and hull upgrades, and three difficulty levels. |
+| **Rusty & Buckets** | The prelude to Wreckwatch: a turn-based team battler in the spirit of *Mario & Luigi: Superstar Saga*. Two combat engineers follow the Halcyon's distress call through 20 timed-hit battles, each behind a puzzle. Four of the puzzles are steered by tilting the phone. |
 | **Wreckwatch** | An isometric base-defense roguelite. Your frigate has crashed on a drifting rock. Build defenses from a hand of cards and hold every wave while the engineers repair it, across five rocks. |
 | **Moondrop** | A tilt-steered lunar lander. Tilt the phone to angle the lander and hold anywhere to thrust; set cargo down softly on twelve missions across four moons, with wind, caves and drifting aliens. Touch steering is available too. |
 
@@ -30,6 +31,9 @@ Each device keeps its own saves. If you installed Starwake before the arcade exi
 
 ### Starwake
 Sectors (`LEVELS`), bosses (`BOSSES`), enemies (`ET`) and the shop catalog are plain data near the top of `games/starwake/game.js`.
+
+### Rusty & Buckets
+The duo (`HEROES`), team moves (`TEAM`), aliens and bosses (`FOES`, `BOSS`, `MOVES`) and the 20 stages with their puzzles and dialogue (`STAGES`) are plain data near the top of `games/rustybuckets/game.js`. Progress saves after every battle.
 
 ### Moondrop
 Moons (`MOONS`) and missions (`MISSIONS`: pads, terrain roughness, wind, caves, hazards, fuel, par time) are plain data near the top of `games/moondrop/game.js`. Each mission's terrain and hazard layout is seeded, so it is the same every attempt. iPhones ask once for motion access the first time you start a mission.

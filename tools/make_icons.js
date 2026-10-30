@@ -66,6 +66,23 @@ const DRAW={
    poly([-58,0,0,-62,58,0,40,30,-40,30],'#e8eefc');poly([-48,16,48,16,40,42,-40,42],'#5a6290');poly([-24,-6,0,-40,24,-6],'#3ef0ff');
    g.restore();
  }`,
+ rustybuckets:`(g)=>{
+   const bg=g.createRadialGradient(256,150,20,256,256,380);bg.addColorStop(0,'#1d1760');bg.addColorStop(1,'#07061a');g.fillStyle=bg;g.fillRect(0,0,512,512);
+   let seed=9;const r=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+   for(let i=0;i<45;i++){g.globalAlpha=.25+r()*.6;g.fillStyle='#cfd8ff';const z=r()*2.4+.6;g.fillRect(r()*512,r()*300,z,z);}g.globalAlpha=1;
+   const rect=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);};
+   g.fillStyle='#46507c';g.beginPath();g.moveTo(0,400);g.lineTo(512,380);g.lineTo(512,512);g.lineTo(0,512);g.fill();
+   // Rusty: big, orange, round helmet, wrench raised
+   rect(96,330,34,70,'#2a3050');rect(150,330,34,70,'#2a3050');rect(78,220,126,116,'#ff8a3d');rect(108,248,66,40,'#ffc531');rect(56,226,26,84,'#ff8a3d');rect(200,226,26,84,'#ff8a3d');
+   g.fillStyle='#e8eefc';g.beginPath();g.arc(141,186,52,0,7);g.fill();rect(104,172,74,24,'#3ef0ff');
+   g.save();g.translate(214,226);g.rotate(-.5);rect(-8,-120,16,124,'#8a92c8');rect(-30,-140,60,24,'#b8c0dc');rect(-30,-160,18,26,'#b8c0dc');rect(12,-160,18,26,'#b8c0dc');g.restore();
+   // Buckets: small, teal, bucket helmet, torch flame
+   rect(330,350,26,50,'#2a3050');rect(370,350,26,50,'#2a3050');rect(314,276,98,80,'#2fb6c8');rect(338,296,50,28,'#ffd23d');rect(298,282,20,62,'#2fb6c8');rect(408,282,20,62,'#2fb6c8');
+   g.fillStyle='#b8c0dc';g.beginPath();g.moveTo(320,214);g.lineTo(406,214);g.lineTo(398,276);g.lineTo(328,276);g.fill();rect(330,240,66,14,'#3ef0ff');
+   g.strokeStyle='#8a92c8';g.lineWidth=6;g.beginPath();g.arc(363,214,40,PI_,0);g.stroke();
+   const q=g.createRadialGradient(440,268,2,440,268,34);q.addColorStop(0,'#ffffff');q.addColorStop(.3,'#4aa8ff');q.addColorStop(1,'rgba(74,168,255,0)');g.fillStyle=q;g.fillRect(400,228,80,80);
+   g.font='900 italic 64px sans-serif';g.fillStyle='#ffc531';g.textAlign='center';g.fillText('&',258,330);
+ }`.replace('PI_','Math.PI'),
 };
 (async()=>{const b=await chromium.launch();const p=await b.newPage();
  const render=async(key,size,mask)=>{const data=await p.evaluate(([src,size,mask])=>{const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');

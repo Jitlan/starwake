@@ -1,0 +1,8 @@
+{
+ "title": "Rusty & Buckets",
+ "tagline": "Team battler RPG",
+ "blurb": "The prelude to Wreckwatch. Two combat engineers fight through twenty timed-hit battles and tilt puzzles to reach the crashed Halcyon.",
+ "order": 2,
+ "accent": "#ff8a3d",
+ "save_key": "rustybuckets.save.v1"
+}
