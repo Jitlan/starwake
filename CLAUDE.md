@@ -21,6 +21,7 @@ A for-fun project: offline, touch-first browser games built entirely in code, pl
 - **Game ids and save keys are permanent.** The id is the URL (`/starwake/<id>/`) and the start of the localStorage key (`<id>.save.v1`). All games share one origin, so keys must not collide. Renaming loses players' saves.
 - Don't move or rename the site root: home-screen installs from before the arcade open `/starwake/` and their saves live in that app's storage.
 - The service worker only deletes caches it made (`arcade-*`, and the legacy `starwake-*`). Keep that if you touch `sw.js` generation in `build.py`.
+- The manifest's `orientation` stays `any`. Android locks an installed app to it (iOS ignores it), and Comet Kid has a landscape layout. Install steps for both platforms are in README.md and in the launcher's install tip.
 - `window.ARCADE` is only set inside the arcade app (it powers the "Back to arcade" button); single-file builds don't have it.
 
 ## Code style

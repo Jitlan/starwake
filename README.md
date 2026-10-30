@@ -12,12 +12,23 @@ Offline, touch-first games built entirely in code. Every model, sound and screen
 | **Moondrop** | A tilt-steered lunar lander. Tilt the phone to angle the lander and hold anywhere to thrust; set cargo down softly on twelve missions across four moons, with wind, caves and drifting aliens. Touch steering is available too. |
 | **Comet Kid** | A run-and-gun platformer in the spirit of Mega Man. Pick any of four strongholds, beat each guardian to take its weapon, then storm the Eclipse Core. Touch controls split by thumb: the left d-pad moves and jumps (push up or diagonally up), the right thumb shoots (hold to charge); below the game in portrait, at the sides in landscape. |
 
-## Install on iPhone or iPad
-1. Open the link above in Safari.
-2. Tap Share, then **Add to Home Screen**, then **Add**.
+## Install as an app
+The arcade installs to your home screen like an app: its own icon, full screen with no browser bars, and every game playable offline.
+
+**iPhone or iPad**
+1. Open the link above in **Safari**. Other iPhone browsers also have Add to Home Screen in their Share menu on iOS 16.4 and later, but Safari is the surest.
+2. Tap **Share** (the square with an arrow). On newer iOS versions it may be inside the **•••** button.
+3. Scroll down and tap **Add to Home Screen**. Leave **Open as Web App** on if it's shown, then tap **Add**.
+4. Launch it once from the icon while online. After that every game runs in airplane mode.
+
+**Android**
+1. Open the link above in **Chrome**.
+2. Tap **Install arcade** on the page if it's shown. Otherwise open the **⋮** menu and tap **Install app** (older Chrome versions call it **Add to Home screen**), then **Install**.
 3. Launch it once from the icon while online. After that every game runs in airplane mode.
 
-Each device keeps its own saves. If you installed Starwake before the arcade existed, your icon keeps working: it opens the arcade, and your Starwake progress is still there.
+Samsung Internet: menu (☰), then **Add page to**, then **Home screen**. Firefox: menu (⋮), then **Install** or **Add to Home screen**.
+
+Each device keeps its own saves. On iPhone the home-screen app also keeps saves separate from Safari, so progress from playing in a Safari tab doesn't carry into the installed app. On Android the installed app shares its saves with Chrome. If you installed Starwake before the arcade existed, your icon keeps working: it opens the arcade, and your Starwake progress is still there.
 
 ## Layout
 - `games/<id>/`: one folder per game.
