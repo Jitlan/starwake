@@ -132,6 +132,26 @@ body.ingame #pad{display:grid}
 .picks small{color:var(--dim);font-size:12px;line-height:1.25}
 .deck{display:flex;flex-wrap:wrap;gap:4px}
 .deck span{font:700 10px/1 var(--f-mono);padding:4px 6px;border-radius:6px;border:1px solid color-mix(in srgb,var(--c) 55%,transparent);color:var(--c)}
+.edit{max-width:640px}
+.edit #edNext{margin:0;color:var(--enemy);font:700 12px/1.3 var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.edh{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}
+.edh b{font:800 15px/1 var(--f-mono);color:var(--player)}
+.egrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.edit .ec{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;min-height:54px;padding:7px 10px 7px 8px;
+  border-radius:12px;border:1.5px solid color-mix(in srgb,var(--c) 65%,transparent);background:linear-gradient(160deg,color-mix(in srgb,var(--c) 18%,#0e0c28),#0b0a22)}
+.ec i{grid-row:1/3;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:800 12px/1 var(--f-mono);font-style:normal;color:#04121a;background:var(--player)}
+.ec b{font:800 italic 14px/1.05 var(--f-display);text-transform:uppercase;color:var(--c);padding-right:22px}
+.ec small{font:600 10px/1.2 var(--f-mono);color:var(--dim)}
+.ec em{position:absolute;right:8px;top:7px;font:800 11px/1 var(--f-mono);font-style:normal;color:var(--ink)}
+.ec.off{opacity:.45}
+.edit{padding-bottom:0}
+.edfoot{position:sticky;bottom:0;display:grid;gap:8px;margin:0 -20px;padding:10px 20px calc(18px + var(--gb));background:#0e0c28;box-shadow:0 -14px 14px #0e0c28}
+.edfoot .hint{margin:0!important}
+.edcols{display:grid;gap:10px}
+@media (max-height:500px){.edit{max-width:780px}.edit h2{display:none}.edfoot{padding-bottom:12px}
+  .edcols{grid-template-columns:1fr 1fr;gap:16px;align-items:start}.edcols .egrid{grid-template-columns:1fr 1fr}
+  .edit .ec{min-height:40px;grid-template-rows:auto;padding:6px 8px}.edit .ec small{display:none}.ec b{font-size:13px}.ec i{grid-row:auto}}
+@media (min-width:560px){.egrid{grid-template-columns:1fr 1fr 1fr}}
 .rows{margin:4px 0 8px;display:grid;grid-template-columns:1fr auto;gap:8px 0;font:500 14px/1.2 var(--f-mono);font-variant-numeric:tabular-nums}
 .rows dt{color:var(--dim)} .rows dd{margin:0;text-align:right}
 #result.win h2{color:var(--player)} #result.lose h2{color:var(--enemy)}
@@ -152,7 +172,7 @@ body.ingame #pad{display:grid}
     <div id="hud" hidden>
       <div class="ht">
         <div class="hp"><div class="eyebrow"><span>Comet Kid</span><b id="hHp">40 / 40</b></div><div class="hbar"><i id="hpI"></i></div><div id="hWard"></div></div>
-        <div class="hmid"><div id="hFight">Fight 1 / 7</div><div id="hFoe"></div></div>
+        <div class="hmid"><div id="hFight">Fight 1 / 25</div><div id="hFoe"></div></div>
         <button id="bPause" aria-label="Pause"></button>
       </div>
       <div id="banner"><div class="eyebrow" id="banEye"></div><h3 id="banTxt"></h3></div>
@@ -172,7 +192,7 @@ body.ingame #pad{display:grid}
   <section id="title" class="screen">
     <div>
       <div class="logo" aria-label="Comet Kid Tactics"><span class="a">Comet Kid</span><span class="b">Tactics</span></div>
-      <p class="tagl">Seven fights in a row, one life. Dodge on your side of the grid, fire your deck at theirs.</p>
+      <p class="tagl">25 fights in a row, one life. Dodge on your side of the grid, fire your deck at theirs.</p>
     </div>
     <div>
       <div class="menu">
@@ -181,7 +201,7 @@ body.ingame #pad{display:grid}
         <button id="tSet" class="ghost">Settings</button>
         <button id="tArc" class="ghost" hidden>Back to arcade</button>
       </div>
-      <div class="foot"><span>BEST <b id="tBest">0 / 7</b></span><span>WINS <b id="tWins">0</b></span></div>
+      <div class="foot"><span>BEST <b id="tBest">0 / 25</b></span><span>WINS <b id="tWins">0</b></span></div>
     </div>
   </section>
 
@@ -190,6 +210,19 @@ body.ingame #pad{display:grid}
       <div class="eyebrow" id="rwEye">Fight 1 clear</div><h2>Pick one</h2>
       <div class="picks" id="rwPicks"></div>
       <div class="eyebrow">Your deck</div><div class="deck" id="rwDeck"></div>
+      <p class="hint" id="rwNext"></p>
+    </div>
+  </section>
+
+  <section id="edit" class="screen dim" hidden>
+    <div class="panel scroll edit">
+      <div class="eyebrow" id="edEye">Before fight 1</div><h2>Deck</h2>
+      <p id="edNext"></p>
+      <div class="edcols">
+        <div><div class="edh"><span class="eyebrow">In your deck</span><b id="edN">7 / 8</b></div><div class="egrid" id="edDeck"></div></div>
+        <div><div class="edh"><span class="eyebrow">Collection</span></div><div class="egrid" id="edLib"></div></div>
+      </div>
+      <div class="edfoot"><p class="hint" id="edHint"></p><button id="edGo" class="primary">Start fight 1</button></div>
     </div>
   </section>
 

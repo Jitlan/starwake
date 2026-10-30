@@ -11,7 +11,7 @@ Offline, touch-first games built entirely in code. Every model, sound and screen
 | **Wreckwatch** | An isometric base-defense roguelite. Your frigate has crashed on a drifting rock. Build defenses from a hand of cards and hold every wave while the engineers repair it, across five rocks. |
 | **Moondrop** | A tilt-steered lunar lander. Tilt the phone to angle the lander and hold anywhere to thrust; set cargo down softly on twelve missions across four moons, with wind, caves and drifting aliens. Touch steering is available too. |
 | **Comet Kid** | A run-and-gun platformer in the spirit of Mega Man. Pick any of four strongholds, beat each guardian to take its weapon, then storm the Eclipse Core. Touch controls: an 8-way d-pad that moves and aims (shots follow the last direction you pushed), plus Jump and Shoot buttons (hold to charge); below the game in portrait, at the sides in landscape. |
-| **Comet Kid Tactics** | A real-time grid battler: seven fights in a row with one life. Dodge across your 3×3 side of the field as attacks light up the tiles they're about to hit, charge the buster, and play cards from a deck that grows after every fight. Touch: a 3×3 move pad, the buster and a hand of three cards. |
+| **Comet Kid Tactics** | A real-time grid battler: 25 fights in a row with one life, with a guardian every fifth fight. Dodge across your 3×3 side of the field as attacks light up the tiles they're about to hit, charge the buster, and play cards from a deck you edit before the first fight and after every reward. Touch: a 3×3 move pad, the buster and a hand of three cards. |
 
 ## Install as an app
 The arcade installs to your home screen like an app: its own icon, full screen with no browser bars, and every game playable offline.
@@ -55,7 +55,7 @@ Moons (`MOONS`) and missions (`MISSIONS`: pads, terrain roughness, wind, caves, 
 Stages are tile maps written as strings, and weapons and bosses (with their weaknesses) are data near the top of `games/cometkid/game.js`. Beaten guardians and won weapons save after each boss.
 
 ### Comet Kid Tactics
-Cards (`CARDS`), aliens (`ET`), guardians (`BOSS`), their attacks (`ATK`) and the seven fights (`FIGHTS`) are plain data near the top of `games/cometkid-tactics/game.js`. A run saves at the start of each fight and on the reward screen.
+Cards (`CARDS`), aliens (`ET`), guardians (`BOSS`), their attacks (`ATK`) and the 25 fights (`FIGHTS`) are plain data near the top of `games/cometkid-tactics/game.js`. Cards you win go into a collection; the deck editor picks which ones you fight with. A run saves at the start of each fight, on the reward screen and in the deck editor.
 
 ### Wreckwatch
 Cards (`CARDS`), aliens (`ET`), bosses (`BOSSES`) and rocks (`SITES`, including how many waves each has) are plain data near the top of `games/wreckwatch/game.js`. Waves are generated from each rock's budget and enemy pool, so every run differs. A run is saved at every build phase, so closing the app mid-wave replays that wave.

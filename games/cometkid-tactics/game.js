@@ -1,6 +1,6 @@
-/* Comet Kid Tactics: a short real-time grid battler. Seven fights in a row on a 6x3 field (your 3x3 on the left, the aliens'
-   on the right) with one life. Move between your tiles, charge the buster and fire cards from a deck that grows after every
-   fight. Attacks light up the tiles they will hit before they land. THREE and ARC (shared/kit.js) load first. */
+/* Comet Kid Tactics: a real-time grid battler. 25 fights in a row on a 6x3 field (your 3x3 on the left, the aliens'
+   on the right) with one life. Move between your tiles, charge the buster and fire cards from a deck you edit before the
+   first fight and after every reward. Attacks light up the tiles they will hit before they land. THREE and ARC (shared/kit.js) load first. */
 (function(){
 'use strict';
 const T=THREE,TAU=Math.PI*2,PI=Math.PI;
@@ -36,7 +36,8 @@ const CARDS={
  patch: {n:'Patch',cost:1,c:0x5dff9b,heal:12,s:'Repair',d:'Repairs 12 HP. Once per fight.',w:1.4,once:1},
  nova:  {n:'Nova',cost:3,c:0xffe6b0,dmg:28,s:'Row blast',d:'A huge blast that pierces your whole row.',w:.6},
 };
-const START=['shot','shot','shot','scythe','lance','ward','patch'];
+// A run starts owning START plus EXTRA; START is the opening deck. Decks hold DECK_MIN cards up to deckMax() (8, +1 per guardian beaten).
+const START=['shot','shot','shot','scythe','lance','ward','patch'],EXTRA=['shot','rocket','flare','freeze'],DECK_MIN=5;
 
 /* ===== ALIENS & GUARDIANS */
 // a = attack cycle (names in ATK), mv = seconds between hops (0 = never moves), cd = seconds between attacks, s = model scale.
@@ -56,15 +57,21 @@ const BOSS={
  hydra:  {n:'Hydra',hp:400,mv:1.2,cd:1.8,a:['wave','bomb','rows2'],p2:['wave','rain','rows2','bomb']},
  eclipse:{n:'Eclipse',hp:650,mv:1.2,cd:1.6,a:['wave','col','rain','charge'],p2:['safe','wave','rain','cross','charge']},
 };
-// The gauntlet. 'G' is a guardian picked at random per run from the first four; the last fight is always the Eclipse.
-const FIGHTS=[['mite','mite'],['mite','drone'],['dart','turret','mite'],'G',['gunship','drone','mite'],['elite','dart','turret'],'eclipse'];
+// The gauntlet. Each 'G' is the next of the four guardians, in an order shuffled per run; the last fight is always the Eclipse.
+const FIGHTS=[
+ ['mite','mite'],['mite','drone'],['dart','mite'],['turret','mite','mite'],'G',
+ ['drone','drone','mite'],['dart','turret'],['gunship','mite'],['dart','drone','turret'],'G',
+ ['gunship','dart','mite'],['elite','mite'],['turret','turret','drone'],['elite','drone','dart'],'G',
+ ['gunship','gunship'],['elite','turret','mite'],['dart','dart','gunship'],['elite','elite'],'G',
+ ['gunship','elite','drone'],['elite','dart','turret'],['gunship','gunship','elite'],['elite','elite','dart'],'eclipse'];
 const NF=FIGHTS.length,GUARDS=['mantis','warden','bastion','hydra'];
 const LV=[{key:45,bpm:134,prog:[0,8,3,10]},{key:43,bpm:138,prog:[0,5,3,10]},{key:47,bpm:140,prog:[0,3,8,10]},{key:41,bpm:136,prog:[0,8,5,3]},
   {key:44,bpm:142,prog:[0,10,8,3]},{key:46,bpm:144,prog:[0,5,8,10]},{key:40,bpm:146,prog:[0,1,8,3]}];
 
 /* ===== TUNING (tiles, seconds) */
-// Per fight, alien HP grows 10% and their hits 12%. Between fights Comet Kid repairs REST HP.
-const TS=1.5,FIX=1/60,HMAX=50,EMAX=5,EREG=1.6,CH=1.2,BCD=.3,STEP=.075,INV=.55,BUSTER=1,CHARGED=5,REST=8,DMG=2.4,ACD=.85;
+// Per fight, alien HP grows HPG and their hits DMGG (of the fight-1 values). Between fights Comet Kid repairs REST HP.
+// Each Buster upgrade adds 2 to the charged shot (and 1 to the tap shot every second level).
+const TS=1.5,FIX=1/60,HMAX=60,EMAX=5,EREG=1.6,CH=1.2,BCD=.3,STEP=.075,INV=.55,BUSTER=1,CHARGED=5,REST=8,DMG=2,ACD=.85,HPG=.045,DMGG=.05;
 const tx=c=>(c-2.5)*TS,tz=r=>(r-1)*TS;
 
 /* ===== RENDERER & CAMERA */
@@ -159,7 +166,7 @@ const Snd=ARC.synth({sfx:()=>S.set.sfx,music:()=>S.set.music,onInit:()=>{if(Mus.
     click:(s,t)=>{s.osc('square',880,0,t,.03,.035);},
     empty:(s,t)=>{s.osc('square',200,180,t,.06,.04);},
   }});
-const Mus=ARC.music(Snd,{level:i=>LV[i]||LV[0],calmBpm:100,calmBass:.22});
+const Mus=ARC.music(Snd,{level:i=>LV[i%LV.length],calmBpm:100,calmBass:.22});
 const vibe=ms=>ARC.vibe(S.set.vibe,ms);
 
 /* ===== RUN STATE */
@@ -172,16 +179,24 @@ const cdmg=id=>Math.round((CARDS[id].dmg||0)*(1+.35*(R.up[id]||0)));
 function cardLine(id){const C=CARDS[id],lv=R?R.up[id]||0:0;return id==='ward'?'Block '+(2+lv):id==='patch'?'+'+(C.heal+4*lv)+' HP':C.s+' · '+(R?cdmg(id):C.dmg);}
 const cname=id=>CARDS[id].n+(R&&R.up[id]?'+'.repeat(R.up[id]):'');
 
-function newRun(){R={fi:0,hp:HMAX,max:HMAX,deck:START.slice(),up:{},t:0,boss:pick(GUARDS)};S.runs++;startFight(0);}
-// The save holds the run at the start of each fight and on the reward screen, so closing the app replays at most one fight.
-function snap(atPick){S.run={fi:R.fi,hp:R.hp,max:R.max,deck:R.deck.slice(),up:Object.assign({},R.up),t:R.t,boss:R.boss,pick:!!atPick};save();}
-function continueRun(){const r=S.run;if(!r)return;R={fi:r.fi,hp:r.hp,max:r.max,deck:r.deck.slice(),up:Object.assign({},r.up),t:r.t,boss:r.boss};if(r.pick)showReward();else startFight(R.fi);}
+function newRun(){R={fi:0,hp:HMAX,max:HMAX,lib:START.concat(EXTRA),deck:START.slice(),up:{},bl:0,t:0,bosses:shuffle(GUARDS.slice())};S.runs++;showEdit();}
+// The save holds the run at each fight start, on the reward screen and in the deck editor (stage), so closing the app replays at
+// most one fight. Runs saved before the editor and the 25-fight gauntlet have no lib/bosses: they get them here.
+function snap(stage){S.run={fi:R.fi,hp:R.hp,max:R.max,lib:R.lib.slice(),deck:R.deck.slice(),up:Object.assign({},R.up),bl:R.bl,t:R.t,bosses:R.bosses.slice(),stage};save();}
+function continueRun(){const r=S.run;if(!r)return;
+  R={fi:r.fi,hp:r.hp,max:r.max,lib:(r.lib||r.deck).slice(),deck:r.deck.slice(),up:Object.assign({},r.up),bl:r.bl||0,t:r.t,
+    bosses:r.bosses||(r.boss?[r.boss].concat(shuffle(GUARDS.filter(g=>g!==r.boss))):shuffle(GUARDS.slice()))};
+  const st=r.stage||(r.pick?'pick':'fight');if(st==='pick')showReward();else if(st==='edit')showEdit();else startFight(R.fi);}
+// the guardian (or Eclipse) of fight i, or null
+const bossOf=i=>FIGHTS[i]==='eclipse'?'eclipse':FIGHTS[i]==='G'?R.bosses[FIGHTS.slice(0,i).filter(f=>f==='G').length]:null;
+const deckMax=()=>8+FIGHTS.slice(0,R.fi).filter(f=>f==='G').length;
+const fightName=i=>{const b=bossOf(i);return b?'Guardian · '+BOSS[b].n:FIGHTS[i].map(t=>ET[t].n).join(' · ');};
 function clearFight(){for(const e of G.en)dropFoe(e);G.en=[];G.warns=[];G.ps=[];G.es=[];G.arcs=[];G.later=[];pt.n=0;for(const p of pops)p.d.remove();pops.length=0;}
 function spawn(type,c,r,boss,hm){const d=boss?BOSS[type]:ET[type],e={type,boss:!!boss,d,c,r,x:tx(c),z:tz(r),hp:Math.round(d.hp*hm),max:0,mt:d.mv*rand(.6,1.2),cd:0,bz:0,frz:0,ai:0,p2:0,fl:0,dead:0,sc:0,t:rand(0,9),dash:0,dashT:0,lhp:-1};
   e.max=e.hp;e.m=foeMesh(e);e.tag=document.createElement('div');e.tag.className='tag'+(boss?' boss':'');$('tags').appendChild(e.tag);G.en.push(e);return e;}
 function startFight(i){
-  clearFight();state='play';hideScreens();R.fi=G.fi=i;snap(false);
-  const f=FIGHTS[i],boss=f==='G'?R.boss:f==='eclipse'?'eclipse':null,list=boss?[boss]:f,hm=1+.1*i;
+  clearFight();state='play';hideScreens();R.fi=G.fi=i;snap('fight');
+  const boss=bossOf(i),list=boss?[boss]:FIGHTS[i],hm=1+HPG*i;
   const spots=boss?[[4,1]]:shuffle([[3,0],[3,2],[4,1],[5,0],[5,2],[4,0],[4,2],[5,1]]);
   list.forEach((t,k)=>{const e=spawn(t,spots[k][0],spots[k][1],boss,hm);e.cd=e.d.cd*(.8+k*.5);});
   Object.assign(PL,{c:1,r:1,x:tx(1),z:tz(1),dest:null,mt:0,hp:R.hp,max:R.max,inv:0,ward:0,en:3,chg:0,charging:0,cd:0,dead:0,flash:0,shootT:0});
@@ -275,9 +290,9 @@ function move(dt){PL.mt-=dt;if(PL.mt>0||!PL.dest)return;const [c,r]=PL.dest;if(c
   if(r!==PL.r)PL.r+=Math.sign(r-PL.r);else PL.c+=Math.sign(c-PL.c);PL.mt=STEP;Snd.play('step');}
 function buster(inp,dt){PL.cd-=dt;
   // a hold that began before the fight (or before a card was played) still starts a charge
-  if(inp.bp||(inp.b&&!PL.charging)){if(PL.cd<=0){pshot({dmg:BUSTER});PL.cd=BCD;Snd.play('shot');}PL.charging=1;PL.chg=0;}
+  if(inp.bp||(inp.b&&!PL.charging)){if(PL.cd<=0){pshot({dmg:BUSTER+(R.bl>>1)});PL.cd=BCD;Snd.play('shot');}PL.charging=1;PL.chg=0;}
   if(PL.charging){if(inp.b||inp.bp){const c0=PL.chg;PL.chg+=dt;if(c0<CH&&PL.chg>=CH)Snd.play('full');}
-    if(inp.br){if(PL.chg>=CH){pshot({dmg:CHARGED,v:22,lvl:1});Snd.play('shot2');}PL.chg=0;PL.charging=0;}}}
+    if(inp.br){if(PL.chg>=CH){pshot({dmg:CHARGED+2*R.bl,v:22,lvl:1});Snd.play('shot2');}PL.chg=0;PL.charging=0;}}}
 function hurt(d){if(G.god||PL.inv>0||G.phase!=='fight'||PL.dead)return;
   if(PL.ward>0){PL.ward--;PL.inv=.35;Snd.play('block');pop('BLOCK',PL.x,1.9,PL.z,'tag2');burst(PL.x,.9,PL.z,10,COL.violet,3,.3,.4);vibe(15);return;}
   d=Math.round(d);PL.hp=Math.max(0,PL.hp-d);PL.inv=INV;PL.flash=.3;G.shake=.35;pop('-'+d,PL.x,1.9,PL.z,'hurt');Snd.play('hurt');vibe(45);
@@ -308,7 +323,7 @@ function tick(inp){
   if(G.phase==='clear'&&G.pt>1.7)fightWon();
   else if(G.phase==='dead'&&G.pt>2.2)runOver(false);
 }
-function aliens(dt){const m=DMG*(1+.12*G.fi);
+function aliens(dt){const m=DMG*(1+DMGG*G.fi);
   for(const e of G.en){if(e.dead)continue;e.t+=dt;e.fl=Math.max(0,e.fl-dt*5);if(e.dashT>0)e.dashT=Math.max(0,e.dashT-dt);if(e.dash>0)e.dash-=dt;
     if(e.frz>0){e.frz-=dt;continue;}if(e.bz>0){e.bz-=dt;continue;}
     const d=e.d;if(d.mv){e.mt-=dt;if(e.mt<=0){e.mt=d.mv*rand(.8,1.25);hop(e);}}
@@ -321,28 +336,48 @@ function fightWon(){R.hp=PL.hp;R.fi=G.fi+1;S.best=Math.max(S.best,R.fi);if(R.fi>
 
 /* ===== REWARDS */
 function wpick(ids){let s=0;for(const id of ids)s+=CARDS[id].w;let r=Math.random()*s;for(const id of ids){r-=CARDS[id].w;if(r<=0)return id;}return ids[0];}
-// Two new cards plus a repair (when hurt) or an upgrade for a card already in the deck.
+// Two new cards plus a repair (when hurt), or else one of: an upgrade for a card you own, a Buster upgrade, more max HP.
 function genRewards(){const ids=Object.keys(CARDS),o=[];while(o.length<2){const id=wpick(ids);if(!o.some(x=>x.id===id))o.push({k:'card',id});}
-  const ups=[...new Set(R.deck)].filter(id=>(R.up[id]||0)<2);
-  o.push(R.hp<R.max*.6?{k:'heal',n:20}:ups.length?{k:'up',id:pick(ups)}:{k:'max',n:8});return o;}
-function showReward(){state='reward';G.phase='done';clearFight();snap(true);hideScreens();document.body.classList.remove('ingame');$('hud').hidden=true;
+  const ups=[...new Set(R.lib)].filter(id=>(R.up[id]||0)<2),alt=[];if(ups.length)alt.push({k:'up',id:pick(ups)},{k:'up',id:pick(ups)});if(R.bl<4)alt.push({k:'bust'});alt.push({k:'max',n:8});
+  o.push(R.hp<R.max*.6?{k:'heal',n:20}:pick(alt));return o;}
+function showReward(){state='reward';G.phase='done';clearFight();snap('pick');hideScreens();document.body.classList.remove('ingame');$('hud').hidden=true;
   G.opts=genRewards();$('rwEye').textContent='Fight '+R.fi+' / '+NF+' clear · '+R.hp+' / '+R.max+' HP';
   $('rwPicks').innerHTML=G.opts.map((o,i)=>{let c,ic,t,d;
     if(o.k==='card'){const C=CARDS[o.id];c=C.c;ic=C.cost;t=C.n;d=C.d;}
     else if(o.k==='up'){const C=CARDS[o.id],lv=R.up[o.id]||0;c=C.c;ic='+';t='Upgrade '+C.n;
-      d=o.id==='ward'?'Ward blocks '+(3+lv)+' hits instead of '+(2+lv)+'.':o.id==='patch'?'Patch repairs '+(C.heal+4*(lv+1))+' HP instead of '+(C.heal+4*lv)+'.':'Every '+C.n+' in your deck hits for '+Math.round(C.dmg*(1+.35*(lv+1)))+' instead of '+cdmg(o.id)+'.';}
+      d=o.id==='ward'?'Ward blocks '+(3+lv)+' hits instead of '+(2+lv)+'.':o.id==='patch'?'Patch repairs '+(C.heal+4*(lv+1))+' HP instead of '+(C.heal+4*lv)+'.':'Every '+C.n+' you own hits for '+Math.round(C.dmg*(1+.35*(lv+1)))+' instead of '+cdmg(o.id)+'.';}
     else if(o.k==='heal'){c=0x5dff9b;ic='+';t='Repair';d='Restore '+o.n+' HP.';}
+    else if(o.k==='bust'){c=0x3ef0ff;ic='+';t='Upgrade Buster';d='Charged shots hit for '+(CHARGED+2*R.bl+2)+' instead of '+(CHARGED+2*R.bl)+(R.bl%2?', taps for '+(BUSTER+(R.bl>>1)+1):'')+'.';}
     else{c=0x5dff9b;ic='+';t='Reinforce';d='+'+o.n+' max HP, and repair '+o.n+'.';}
     return '<button data-i="'+i+'" style="--c:'+hex(c)+'"><i>'+ic+'</i><b>'+t+'</b><small>'+d+'</small></button>';}).join('');
-  $('rwDeck').innerHTML=deckHtml();$('reward').hidden=false;Mus.play('calm',0);releaseWake();}
+  $('rwDeck').innerHTML=deckHtml();$('rwNext').textContent='Next: fight '+(R.fi+1)+' · '+fightName(R.fi);$('reward').hidden=false;Mus.play('calm',0);releaseWake();}
 function pickReward(i){const o=G.opts&&G.opts[i];if(!o||state!=='reward')return;
-  if(o.k==='card')R.deck.push(o.id);else if(o.k==='up')R.up[o.id]=(R.up[o.id]||0)+1;else if(o.k==='heal')R.hp=Math.min(R.max,R.hp+o.n);else{R.max+=o.n;R.hp+=o.n;}
-  G.opts=null;Snd.play('click');startFight(R.fi);}
-const deckHtml=()=>{const n={};for(const id of R.deck)n[id]=(n[id]||0)+1;return Object.keys(n).map(id=>'<span style="--c:'+hex(CARDS[id].c)+'">'+cname(id)+(n[id]>1?' ×'+n[id]:'')+'</span>').join('');};
+  // a new card joins the collection, and the deck too while there's room
+  if(o.k==='card'){R.lib.push(o.id);if(R.deck.length<deckMax())R.deck.push(o.id);}else if(o.k==='up')R.up[o.id]=(R.up[o.id]||0)+1;else if(o.k==='bust')R.bl++;
+  else if(o.k==='heal')R.hp=Math.min(R.max,R.hp+o.n);else{R.max+=o.n;R.hp+=o.n;}
+  G.opts=null;Snd.play('click');showEdit();}
+
+/* ===== DECK EDITOR */
+// Before the first fight and after every reward: tap a deck card to take one copy out, a collection card to put one in.
+const groups=a=>{const n={};for(const id of a)n[id]=(n[id]||0)+1;return Object.keys(CARDS).filter(id=>n[id]).map(id=>({id,n:n[id]}));};
+function libRest(){const r=R.lib.slice();for(const id of R.deck){const i=r.indexOf(id);if(i>=0)r.splice(i,1);}return r;}
+function showEdit(){state='edit';G.phase='done';clearFight();snap('edit');hideScreens();document.body.classList.remove('ingame');$('hud').hidden=true;
+  $('edit').hidden=false;renderEdit();Mus.play('calm',0);releaseWake();}
+function renderEdit(){const mx=deckMax(),n=R.deck.length,full=n>=mx,thin=n<=DECK_MIN;
+  $('edEye').textContent='Before fight '+(R.fi+1)+' / '+NF+' · '+R.hp+' / '+R.max+' HP';$('edNext').textContent='Next: '+fightName(R.fi);
+  $('edN').textContent=n+' / '+mx;$('edGo').textContent='Start fight '+(R.fi+1);
+  const tile=(g,where,off)=>{const C=CARDS[g.id];return '<button class="ec'+(off?' off':'')+'" data-id="'+g.id+'" data-w="'+where+'" style="--c:'+hex(C.c)+'"><i>'+C.cost+'</i><b>'+cname(g.id)+'</b><small>'+cardLine(g.id)+'</small>'+(g.n>1?'<em>×'+g.n+'</em>':'')+'</button>';};
+  $('edDeck').innerHTML=groups(R.deck).map(g=>tile(g,'deck',thin)).join('');
+  const rest=groups(libRest());$('edLib').innerHTML=rest.length?rest.map(g=>tile(g,'lib',full)).join(''):'<p class="hint">Every card you own is in the deck.</p>';
+  $('edHint').textContent=full?'Deck is full: take a card out to put another in.':thin?'Decks need at least '+DECK_MIN+' cards.':'Tap a card to move it. Smaller decks draw their best cards more often.';}
+function deckAdd(id){const r=libRest();if(!r.includes(id)||R.deck.length>=deckMax())return false;R.deck.push(id);snap('edit');return true;}
+function deckRemove(id){const i=R.deck.indexOf(id);if(i<0||R.deck.length<=DECK_MIN)return false;R.deck.splice(i,1);snap('edit');return true;}
+function editDone(){if(state!=='edit')return;Snd.play('click');startFight(R.fi);}
+const deckHtml=()=>groups(R.deck).map(g=>'<span style="--c:'+hex(CARDS[g.id].c)+'">'+cname(g.id)+(g.n>1?' ×'+g.n:'')+'</span>').join('');
 function runOver(win){state='result';S.run=null;const t=R.t;if(win){S.wins++;if(!S.bestT||t<S.bestT)S.bestT=t;}save();releaseWake();
   const r=$('result');r.className='screen dim '+(win?'win':'lose');$('rEye').textContent=win?'Gauntlet cleared':'Run over';$('rTitle').textContent=win?'Victory':'Comet Kid is down';
-  $('rSub').textContent=win?'All seven fights, one life. The Eclipse is scrap.':'Fell in fight '+(G.fi+1)+(FIGHTS[G.fi]==='G'?' against the '+BOSS[R.boss].n:FIGHTS[G.fi]==='eclipse'?' against the Eclipse':'')+'.';
-  $('rRows').innerHTML=[['Fights cleared',R.fi+' / '+NF],['Time',fmt(t)],['Deck',R.deck.length+' cards'],['Best',S.best+' / '+NF],['Wins',S.wins]].map(x=>'<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>').join('');
+  const b=bossOf(G.fi);$('rSub').textContent=win?'All '+NF+' fights, one life. The Eclipse is scrap.':'Fell in fight '+(G.fi+1)+(b?' against the '+BOSS[b].n:'')+'.';
+  $('rRows').innerHTML=[['Fights cleared',R.fi+' / '+NF],['Time',fmt(t)],['Deck',R.deck.length+' of '+R.lib.length+' cards'],['Best',S.best+' / '+NF],['Wins',S.wins]].map(x=>'<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>').join('');
   hideScreens();document.body.classList.remove('ingame');$('hud').hidden=true;r.hidden=false;Snd.play(win?'win':'die');Mus.play('calm',0);}
 
 /* ===== DRAW */
@@ -415,7 +450,7 @@ function toast(txt,c){const t=$('toast');t.textContent=txt;t.style.color='rgb('+
 function banner(eye,txt){const b=$('banner');$('banEye').textContent=eye;$('banTxt').textContent=txt;b.classList.remove('go');void b.offsetWidth;b.classList.add('go');}
 
 /* ===== SCREENS */
-const SCREENS=['title','reward','pause','result','settings'];
+const SCREENS=['title','reward','edit','pause','result','settings'];
 function hideScreens(){for(const s of SCREENS)$(s).hidden=true;}
 const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
 // The title shows the field with a couple of idle aliens.
@@ -423,7 +458,7 @@ function titleScene(){clearFight();G.phase='title';const m=spawn('mite',4,0,fals
 function goTitle(){state='title';hideScreens();document.body.classList.remove('ingame');$('hud').hidden=true;$('title').hidden=false;titleScene();
   const r=S.run;$('tCont').hidden=!r;if(r)$('tCont').textContent='Continue · fight '+Math.min(NF,r.fi+1)+' / '+NF;$('tPlay').classList.toggle('primary',!r);$('tPlay').textContent=r?'New run (replaces it)':'New run';
   $('tBest').textContent=S.best+' / '+NF;$('tWins').textContent=S.wins;Mus.play('calm',0);releaseWake();resize();}
-function pause(){if(state!=='play')return;state='paused';clearInput();hideScreens();$('pause').hidden=false;$('pTitle').textContent=(FIGHTS[G.fi]==='G'||FIGHTS[G.fi]==='eclipse'?'Guardian ':'Fight ')+(G.fi+1)+' / '+NF;
+function pause(){if(state!=='play')return;state='paused';clearInput();hideScreens();$('pause').hidden=false;$('pTitle').textContent=(bossOf(G.fi)?'Guardian ':'Fight ')+(G.fi+1)+' / '+NF;
   $('pDeck').innerHTML=deckHtml();Snd.suspend();releaseWake();}
 function resume(){if(state!=='paused')return;hideScreens();state='play';clearInput();Snd.resume();last=performance.now();acc=0;requestWake();}
 let settingsFrom='title',confirmReset=false;
@@ -438,6 +473,8 @@ $('tCont').onclick=()=>{Snd.play('click');continueRun();};
 $('tSet').onclick=()=>openSettings('title');
 if(window.ARCADE){$('tArc').hidden=false;$('tArc').onclick=()=>{save();location.href=window.ARCADE.home;};}
 $('rwPicks').onclick=e=>{const b=e.target.closest('button');if(b)pickReward(+b.dataset.i);};
+$('edit').addEventListener('click',e=>{const b=e.target.closest('.ec');if(!b)return;const ok=b.dataset.w==='deck'?deckRemove(b.dataset.id):deckAdd(b.dataset.id);Snd.play(ok?'click':'empty');if(ok)renderEdit();});
+$('edGo').onclick=editDone;
 $('bPause').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();pause();});
 $('pRes').onclick=resume;
 $('pSet').onclick=()=>openSettings('pause');
@@ -473,8 +510,8 @@ function frame(now){
 resize();goTitle();requestAnimationFrame(t=>{last=t;frame(t);});
 // Test hook. step(dt) runs fixed ticks; auto = (PL, G) => ({dest:[c,r], b: buster held, card: hand index}) replaces player input;
 // god 1 = no damage, 2 = can't die.
-window.__tactics={get S(){return S;},get R(){return R;},G,PL,CARDS,ET,BOSS,FIGHTS,ATK,consts:{TS,FIX,HMAX,EMAX,EREG,CH,BCD,STEP,INV,BUSTER,CHARGED,REST},
-  newRun,startFight,continueRun,showReward,pickReward,useCard,hurtE,goTitle,pause,resume,tick,alive,
+window.__tactics={get S(){return S;},get R(){return R;},G,PL,CARDS,ET,BOSS,FIGHTS,ATK,consts:{TS,FIX,HMAX,EMAX,EREG,CH,BCD,STEP,INV,BUSTER,CHARGED,REST,DECK_MIN,HPG,DMGG},
+  newRun,startFight,continueRun,showReward,pickReward,showEdit,deckAdd,deckRemove,editDone,deckMax,bossOf,useCard,hurtE,goTitle,pause,resume,tick,alive,
   step(dt){let n=Math.round(dt/FIX);while(n-->0&&state==='play')tick();},get state(){return state;},set auto(f){auto=f;},get auto(){return auto;},
   set god(v){G.god=v;},get god(){return G.god;},killAll(){for(const e of alive())hurtE(e,999);}};
 })();
